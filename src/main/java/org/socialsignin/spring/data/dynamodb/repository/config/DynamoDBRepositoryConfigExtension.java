@@ -140,7 +140,7 @@ public class DynamoDBRepositoryConfigExtension extends RepositoryConfigurationEx
 					"Cannot specify both dynamoDBMapperConfigBean bean and dynamoDBOperationsBean in repository configuration");
 		} else {
 
-			if (StringUtils.isEmpty(dynamoDBOperationsRef)) {
+			if (!StringUtils.hasText(dynamoDBOperationsRef)) {
 
 				String dynamoDBRef;
 				if (StringUtils.hasText(amazonDynamoDBRef)) {

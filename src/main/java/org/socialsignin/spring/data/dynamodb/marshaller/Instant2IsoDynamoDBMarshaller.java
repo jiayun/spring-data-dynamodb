@@ -56,7 +56,7 @@ public class Instant2IsoDynamoDBMarshaller
 
 	@Override
 	public Instant unmarshall(Class<Instant> clazz, String obj) {
-		if (StringUtils.isEmpty(obj)) {
+		if (!StringUtils.hasText(obj)) {
 			return null;
 		} else {
 			return Instant.from(getDateFormat().parse(obj));

@@ -100,7 +100,7 @@ public abstract class AbstractDynamoDBQueryCreator<T, ID, R>
 		if(values != null) {
 			this.expressionAttributeValues = values.clone();
 			for(ExpressionAttribute value: expressionAttributeValues) {
-				if(!StringUtils.isEmpty(value.parameterName())) {
+				if(StringUtils.hasText(value.parameterName())) {
 					for(Parameter p : ((ParametersParameterAccessor)parameterAccessor).getParameters()) {
 						if(p.getName().isPresent() && p.getName().get().equals(value.parameterName())) {
 							mappedExpressionValues.put(value.parameterName(), (String) parameterAccessor.getBindableValue(p.getIndex()));

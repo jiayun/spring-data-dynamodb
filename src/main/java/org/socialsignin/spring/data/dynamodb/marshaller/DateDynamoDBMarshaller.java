@@ -49,7 +49,7 @@ public abstract class DateDynamoDBMarshaller implements DynamoDBTypeConverter<St
 
 	@Override
 	public Date unmarshall(Class<Date> clazz, String obj) {
-		if (StringUtils.isEmpty(obj)) {
+		if (!StringUtils.hasText(obj)) {
 			return null;
 		} else {
 			try {

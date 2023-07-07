@@ -201,17 +201,17 @@ public class DynamoDBEntityWithHashAndRangeKeyCriteria<T, ID> extends AbstractDy
 
 		if(filterExpression.isPresent()) {
 			String filter = filterExpression.get();
-			if(!StringUtils.isEmpty(filter)) {
+			if(StringUtils.hasText(filter)) {
 				queryExpression.setFilterExpression(filter);
 				if (expressionAttributeNames != null && expressionAttributeNames.length > 0) {
 					for (ExpressionAttribute attribute : expressionAttributeNames) {
-						if(!StringUtils.isEmpty(attribute.key()))
+						if(StringUtils.hasText(attribute.key()))
 							queryExpression.addExpressionAttributeNamesEntry(attribute.key(), attribute.value());
 					}
 				}
 				if (expressionAttributeValues != null && expressionAttributeValues.length > 0) {
 					for (ExpressionAttribute value : expressionAttributeValues) {
-						if (!StringUtils.isEmpty(value.key())) {
+						if (StringUtils.hasText(value.key())) {
 							if (mappedExpressionValues.containsKey(value.parameterName())) {
 								queryExpression.addExpressionAttributeValuesEntry(value.key(), new AttributeValue(mappedExpressionValues.get(value.parameterName())));
 							} else {

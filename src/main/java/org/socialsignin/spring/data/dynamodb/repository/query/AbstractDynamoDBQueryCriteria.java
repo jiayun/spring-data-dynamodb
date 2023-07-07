@@ -151,17 +151,17 @@ public abstract class AbstractDynamoDBQueryCriteria<T, ID> implements DynamoDBQu
 
 		if(filterExpression.isPresent()) {
 			String filter = filterExpression.get();
-			if(!StringUtils.isEmpty(filter)) {
+			if(StringUtils.hasText(filter)) {
 				queryRequest.setFilterExpression(filter);
 				if (expressionAttributeNames != null && expressionAttributeNames.length > 0) {
 					for (ExpressionAttribute attribute : expressionAttributeNames) {
-						if(!StringUtils.isEmpty(attribute.key()))
+						if(StringUtils.hasText(attribute.key()))
 							queryRequest.addExpressionAttributeNamesEntry(attribute.key(), attribute.value());
 					}
 				}
 				if (expressionAttributeValues != null && expressionAttributeValues.length > 0) {
 					for (ExpressionAttribute value : expressionAttributeValues) {
-						if (!StringUtils.isEmpty(value.key())) {
+						if (StringUtils.hasText(value.key())) {
 							if (mappedExpressionValues.containsKey(value.parameterName())) {
 								queryRequest.addExpressionAttributeValuesEntry(value.key(), new AttributeValue(mappedExpressionValues.get(value.parameterName())));
 							} else {
