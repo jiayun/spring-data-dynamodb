@@ -50,7 +50,7 @@ public class ExceptionHandlerTest {
 
 		BatchWriteException actual = underTest.repackageToException(failedBatches, BatchWriteException.class);
 
-		assertEquals("Processing of entities failed!; nested exception is java.lang.Exception: Test Exception",
+		assertEquals("Processing of entities failed!",
 				actual.getMessage());
 
 		assertEquals(1, actual.getSuppressed().length);

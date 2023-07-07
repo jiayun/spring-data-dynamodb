@@ -266,7 +266,7 @@ public class SimpleDynamoDBCrudRepositoryTest {
 
 		expectedException.expect(BatchWriteException.class);
 		expectedException.expectMessage(
-				"Processing of entities failed!; nested exception is java.lang.Exception: First exception");
+				"Processing of entities failed!");
 
 		repoForEntityWithOnlyHashKey.saveAll(entities);
 	}

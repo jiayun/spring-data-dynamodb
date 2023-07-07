@@ -15,6 +15,7 @@
  */
 package org.socialsignin.spring.data.dynamodb.domain.sample;
 
+import org.socialsignin.spring.data.dynamodb.repository.DynamoDBCrudRepository;
 import org.socialsignin.spring.data.dynamodb.repository.DynamoDBPagingAndSortingRepository;
 import org.socialsignin.spring.data.dynamodb.repository.EnableScan;
 import org.socialsignin.spring.data.dynamodb.repository.EnableScanCount;
@@ -23,6 +24,7 @@ import org.springframework.data.domain.Pageable;
 
 @EnableScan
 @EnableScanCount
-public interface FeedPagingRepository extends DynamoDBPagingAndSortingRepository<Feed, String> {
+public interface FeedPagingRepository extends DynamoDBPagingAndSortingRepository<Feed, String>,
+		DynamoDBCrudRepository<Feed, String> {
 	Page<Feed> findAllByMessageOrderByRegDateDesc(String message, Pageable pageable);
 }

@@ -190,6 +190,11 @@ public class SimpleDynamoDBCrudRepository<T, ID>
 	}
 
 	@Override
+	public void deleteAllById(Iterable<? extends ID> ids) {
+		// TODO
+	}
+
+	@Override
 	public void deleteAll(Iterable<? extends T> entities) {
 
 		Assert.notNull(entities, "The given Iterable of entities not be null!");

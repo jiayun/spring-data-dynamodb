@@ -37,14 +37,14 @@
     </licenses>
 
     <properties>
-        <spring.version>5.3.15</spring.version>
-        <spring-data.version>2.4.15</spring-data.version>
+        <spring.version>6.0.9</spring.version>
+        <spring-data.version>3.1.0</spring-data.version>
 
-        <hibernate-validator.version>6.2.2.Final</hibernate-validator.version>
+        <hibernate-validator.version>8.0.0.Final</hibernate-validator.version>
         <aws-java-sdk.version>1.12.150</aws-java-sdk.version>
         <junit.version>4.13.2</junit.version>
         <mockito.version>5.4.0</mockito.version>
-        <cdi.version>2.0</cdi.version>
+        <cdi.version>4.0.1</cdi.version>
         <slf4j-test.version>1.2.0</slf4j-test.version>
         <sqlite4java.version>1.0.392</sqlite4java.version>
         <sqlite4java.groupId>com.almworks.sqlite4java</sqlite4java.groupId>
@@ -54,11 +54,16 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
-        <spring-boot-starter-validation.version>2.6.3</spring-boot-starter-validation.version>
+        <spring-boot-starter-validation.version>3.1.0</spring-boot-starter-validation.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-beans</artifactId>
+                <version>${spring.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.springframework</groupId>
                 <artifactId>spring-framework-bom</artifactId>
@@ -170,8 +175,8 @@
 
         <!-- CDI -->
         <dependency>
-            <groupId>javax.enterprise</groupId>
-            <artifactId>cdi-api</artifactId>
+            <groupId>jakarta.enterprise</groupId>
+            <artifactId>jakarta.enterprise.cdi-api</artifactId>
             <version>${cdi.version}</version>
             <scope>compile</scope>
         </dependency>

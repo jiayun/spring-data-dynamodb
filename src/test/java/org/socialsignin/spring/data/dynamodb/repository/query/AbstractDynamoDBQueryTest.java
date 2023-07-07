@@ -113,6 +113,8 @@ public class AbstractDynamoDBQueryTest {
 	@Mock
 	private TypeInformation typeInformation;
 	@Mock
+	private TypeInformation<User> userTypeInformation;
+	@Mock
 	private ProjectionFactory factory;
 
 	@Before
@@ -120,6 +122,7 @@ public class AbstractDynamoDBQueryTest {
 		doReturn(Page.class).when(typeInformation).getType();
 		doReturn(typeInformation).when(metadata)
 			.getReturnType(ArgumentMatchers.argThat(argument -> "findByName".equals(argument.getName())));
+		doReturn(userTypeInformation).when(metadata).getDomainTypeInformation();
 		doReturn(UserRepository.class).when(metadata).getRepositoryInterface();
 		doReturn(User.class).when(metadata).getReturnedDomainClass(any());
 	}
