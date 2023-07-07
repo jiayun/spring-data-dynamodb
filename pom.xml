@@ -43,16 +43,17 @@
         <hibernate-validator.version>6.2.2.Final</hibernate-validator.version>
         <aws-java-sdk.version>1.12.150</aws-java-sdk.version>
         <junit.version>4.13.2</junit.version>
-        <mockito.version>2.23.0</mockito.version>
+        <mockito.version>5.4.0</mockito.version>
         <cdi.version>2.0</cdi.version>
         <slf4j-test.version>1.2.0</slf4j-test.version>
         <sqlite4java.version>1.0.392</sqlite4java.version>
+        <sqlite4java.groupId>com.almworks.sqlite4java</sqlite4java.groupId>
 
         <findbugs.version>3.0.5</findbugs.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
         <spring-boot-starter-validation.version>2.6.3</spring-boot-starter-validation.version>
     </properties>
 
@@ -231,7 +232,7 @@
                             <configuration>
                                 <rules>
                                     <requireJavaVersion>
-                                        <version>1.8.0</version>
+                                        <version>17</version>
                                     </requireJavaVersion>
                                 </rules>
                             </configuration>
@@ -336,7 +337,7 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.5</version>
+                <version>0.8.10</version>
                 <executions>
                     <execution>
                         <goals>
@@ -451,7 +452,7 @@
                         <configuration>
                             <artifactItems>
                                 <artifactItem>
-                                    <groupId>com.almworks.sqlite4java</groupId>
+                                    <groupId>${sqlite4java.groupId}</groupId>
                                     <artifactId>${sqlite4java.artifactId}</artifactId>
                                     <version>${sqlite4java.version}</version>
                                     <type>${sqlite4java.type}</type>
@@ -532,10 +533,25 @@
             <activation>
                 <os>
                     <family>mac</family>
+                    <arch>x86_64</arch>
                 </os>
             </activation>
             <properties>
                 <sqlite4java.artifactId>libsqlite4java-osx</sqlite4java.artifactId>
+                <sqlite4java.type>dylib</sqlite4java.type>
+            </properties>
+        </profile>
+        <profile>
+            <id>mac-aarch64</id>
+            <activation>
+                <os>
+                    <family>mac</family>
+                    <arch>aarch64</arch>
+                </os>
+            </activation>
+            <properties>
+                <sqlite4java.groupId>io.github.ganadist.sqlite4java</sqlite4java.groupId>
+                <sqlite4java.artifactId>libsqlite4java-osx-aarch64</sqlite4java.artifactId>
                 <sqlite4java.type>dylib</sqlite4java.type>
             </properties>
         </profile>
