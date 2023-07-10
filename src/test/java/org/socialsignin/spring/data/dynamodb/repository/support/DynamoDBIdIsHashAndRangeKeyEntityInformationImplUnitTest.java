@@ -16,20 +16,23 @@
 package org.socialsignin.spring.data.dynamodb.repository.support;
 
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMarshaller;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.socialsignin.spring.data.dynamodb.domain.sample.Playlist;
 import org.socialsignin.spring.data.dynamodb.domain.sample.PlaylistId;
 import org.socialsignin.spring.data.dynamodb.domain.sample.User;
 
 import java.util.Optional;
 
-@RunWith(MockitoJUnitRunner.class)
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.lenient;
+
+@ExtendWith(MockitoExtension.class)
 public class DynamoDBIdIsHashAndRangeKeyEntityInformationImplUnitTest {
 
 	private DynamoDBIdIsHashAndRangeKeyEntityInformationImpl<Playlist, PlaylistId> dynamoDBPlaylistEntityInformation;
@@ -64,25 +67,25 @@ public class DynamoDBIdIsHashAndRangeKeyEntityInformationImplUnitTest {
 	private DynamoDBMarshaller<Object> mockPropertyMarshaller;
 
 	@SuppressWarnings("unchecked")
-	@Before
+	@BeforeEach
 	public void setup() {
-		Mockito.when(mockPlaylistEntityMetadata.getHashAndRangeKeyExtractor(PlaylistId.class))
+		lenient().when(mockPlaylistEntityMetadata.getHashAndRangeKeyExtractor(PlaylistId.class))
 				.thenReturn(mockHashAndRangeKeyExtractor);
-		Mockito.when(mockHashAndRangeKeyExtractor.getHashKey(mockPlaylistId)).thenReturn(mockHashKey);
-		Mockito.when(mockHashAndRangeKeyExtractor.getRangeKey(mockPlaylistId)).thenReturn(mockRangeKey);
+		lenient().when(mockHashAndRangeKeyExtractor.getHashKey(mockPlaylistId)).thenReturn(mockHashKey);
+		lenient().when(mockHashAndRangeKeyExtractor.getRangeKey(mockPlaylistId)).thenReturn(mockRangeKey);
 
-		Mockito.when(mockPlaylistEntityMetadata.getHashKeyPropertyName()).thenReturn("playlistHashKeyPropertyName");
-		Mockito.when(mockPlaylistEntityMetadata.getHashKeyPropotypeEntityForHashKey("somePlaylistHashKey"))
+		lenient().when(mockPlaylistEntityMetadata.getHashKeyPropertyName()).thenReturn("playlistHashKeyPropertyName");
+		lenient().when(mockPlaylistEntityMetadata.getHashKeyPropotypeEntityForHashKey("somePlaylistHashKey"))
 				.thenReturn(mockPlaylistPrototype);
-		Mockito.when(mockPlaylistEntityMetadata.getMarshallerForProperty("marshalledProperty"))
+		lenient().when(mockPlaylistEntityMetadata.getMarshallerForProperty("marshalledProperty"))
 				.thenReturn(mockPropertyMarshaller);
-		Mockito.when(mockPlaylistEntityMetadata.getOverriddenAttributeName("overriddenProperty"))
+		lenient().when(mockPlaylistEntityMetadata.getOverriddenAttributeName("overriddenProperty"))
 				.thenReturn(Optional.of("modifiedPropertyName"));
 
-		Mockito.when(mockPlaylistEntityMetadata.isHashKeyProperty("nonHashKeyProperty")).thenReturn(false);
-		Mockito.when(mockPlaylistEntityMetadata.isCompositeHashAndRangeKeyProperty("compositeIdProperty"))
+		lenient().when(mockPlaylistEntityMetadata.isHashKeyProperty("nonHashKeyProperty")).thenReturn(false);
+		lenient().when(mockPlaylistEntityMetadata.isCompositeHashAndRangeKeyProperty("compositeIdProperty"))
 				.thenReturn(true);
-		Mockito.when(mockPlaylistEntityMetadata.isCompositeHashAndRangeKeyProperty("nonCompositeIdProperty"))
+		lenient().when(mockPlaylistEntityMetadata.isCompositeHashAndRangeKeyProperty("nonCompositeIdProperty"))
 				.thenReturn(false);
 
 		dynamoDBPlaylistEntityInformation = new DynamoDBIdIsHashAndRangeKeyEntityInformationImpl<>(Playlist.class,
@@ -90,9 +93,11 @@ public class DynamoDBIdIsHashAndRangeKeyEntityInformationImplUnitTest {
 
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testConstruct_WhenEntityDoesNotHaveFieldAnnotatedWithId_ThrowsIllegalArgumentException() {
-		new DynamoDBIdIsHashAndRangeKeyEntityInformationImpl<User, String>(User.class, mockUserEntityMetadata);
+		assertThrows(IllegalArgumentException.class, () -> {
+			new DynamoDBIdIsHashAndRangeKeyEntityInformationImpl<User, String>(User.class, mockUserEntityMetadata);
+		});
 	}
 
 	@Test
@@ -101,19 +106,19 @@ public class DynamoDBIdIsHashAndRangeKeyEntityInformationImplUnitTest {
 		playlist.setUserName("someUserName");
 		playlist.setPlaylistName("somePlaylistName");
 		PlaylistId id = dynamoDBPlaylistEntityInformation.getId(playlist);
-		Assert.assertNotNull(id);
-		Assert.assertEquals("someUserName", id.getUserName());
-		Assert.assertEquals("somePlaylistName", id.getPlaylistName());
+		Assertions.assertNotNull(id);
+		Assertions.assertEquals("someUserName", id.getUserName());
+		Assertions.assertEquals("somePlaylistName", id.getPlaylistName());
 	}
 
 	@Test
 	public void testGetJavaType_WhenEntityIsInstanceWithHashAndRangeKey_ReturnsEntityClass() {
-		Assert.assertEquals(Playlist.class, dynamoDBPlaylistEntityInformation.getJavaType());
+		Assertions.assertEquals(Playlist.class, dynamoDBPlaylistEntityInformation.getJavaType());
 	}
 
 	@Test
 	public void testGetIdType_WhenEntityIsInstanceWithHashAndRangeKey_ReturnsReturnTypeOfIdMethod() {
-		Assert.assertEquals(PlaylistId.class, dynamoDBPlaylistEntityInformation.getIdType());
+		Assertions.assertEquals(PlaylistId.class, dynamoDBPlaylistEntityInformation.getIdType());
 	}
 
 	// The following tests ensure that invarient methods such as those always
@@ -123,21 +128,21 @@ public class DynamoDBIdIsHashAndRangeKeyEntityInformationImplUnitTest {
 
 	@Test
 	public void testIsRangeKeyAware_ReturnsTrue() {
-		Assert.assertTrue(dynamoDBPlaylistEntityInformation.isRangeKeyAware());
+		Assertions.assertTrue(dynamoDBPlaylistEntityInformation.isRangeKeyAware());
 	}
 
 	@Test
 	public void testGetHashKeyGivenId_WhenIdMethodFoundOnEntity_DelegatesToHashAndRangeKeyExtractorWithGivenIdValue() {
 		Object hashKey = dynamoDBPlaylistEntityInformation.getHashKey(mockPlaylistId);
-		Assert.assertNotNull(hashKey);
-		Assert.assertEquals(mockHashKey, hashKey);
+		Assertions.assertNotNull(hashKey);
+		Assertions.assertEquals(mockHashKey, hashKey);
 	}
 
 	@Test
 	public void testGetRangeKeyGivenId_WhenIdMethodFoundOnEntity_DelegatesToHashAndRangeKeyExtractorWithGivenIdValue() {
 		Object rangeKey = dynamoDBPlaylistEntityInformation.getRangeKey(mockPlaylistId);
-		Assert.assertNotNull(rangeKey);
-		Assert.assertEquals(mockRangeKey, rangeKey);
+		Assertions.assertNotNull(rangeKey);
+		Assertions.assertEquals(mockRangeKey, rangeKey);
 	}
 
 	@Test
@@ -149,14 +154,14 @@ public class DynamoDBIdIsHashAndRangeKeyEntityInformationImplUnitTest {
 		Object returnedPlaylistEntity = dynamoDBPlaylistEntityInformation
 				.getHashKeyPropotypeEntityForHashKey("someHashKey");
 
-		Assert.assertEquals(playlistPrototypeEntity, returnedPlaylistEntity);
+		Assertions.assertEquals(playlistPrototypeEntity, returnedPlaylistEntity);
 		Mockito.verify(mockPlaylistEntityMetadata).getHashKeyPropotypeEntityForHashKey("someHashKey");
 
 	}
 
 	@Test
 	public void testGetHashKeyPropertyName_DelegatesToEntityMetadata_IrrespectiveOfEntityInformationSetup() {
-		Assert.assertEquals("playlistHashKeyPropertyName", dynamoDBPlaylistEntityInformation.getHashKeyPropertyName());
+		Assertions.assertEquals("playlistHashKeyPropertyName", dynamoDBPlaylistEntityInformation.getHashKeyPropertyName());
 
 	}
 
@@ -165,7 +170,7 @@ public class DynamoDBIdIsHashAndRangeKeyEntityInformationImplUnitTest {
 
 		Object hashKeyPrototype2 = dynamoDBPlaylistEntityInformation
 				.getHashKeyPropotypeEntityForHashKey("somePlaylistHashKey");
-		Assert.assertEquals(mockPlaylistPrototype, hashKeyPrototype2);
+		Assertions.assertEquals(mockPlaylistPrototype, hashKeyPrototype2);
 	}
 
 	@Test
@@ -173,7 +178,7 @@ public class DynamoDBIdIsHashAndRangeKeyEntityInformationImplUnitTest {
 		@SuppressWarnings("deprecation")
 		DynamoDBMarshaller<?> marshaller1 = dynamoDBPlaylistEntityInformation
 				.getMarshallerForProperty("marshalledProperty");
-		Assert.assertEquals(mockPropertyMarshaller, marshaller1);
+		Assertions.assertEquals(mockPropertyMarshaller, marshaller1);
 
 	}
 
@@ -182,21 +187,21 @@ public class DynamoDBIdIsHashAndRangeKeyEntityInformationImplUnitTest {
 
 		Optional<String> propertyName2 = dynamoDBPlaylistEntityInformation
 				.getOverriddenAttributeName("overriddenProperty");
-		Assert.assertEquals(Optional.of("modifiedPropertyName"), propertyName2);
+		Assertions.assertEquals(Optional.of("modifiedPropertyName"), propertyName2);
 	}
 
 	@Test
 	public void testGetIsHashKeyProperty_DelegatesToEntityMetadata_IrrespectiveOfEntityInformationSetup() {
 
-		Assert.assertFalse(dynamoDBPlaylistEntityInformation.isHashKeyProperty("nonHashKeyProperty"));
-		Assert.assertFalse(dynamoDBPlaylistEntityInformation.isHashKeyProperty("nonHashKeyProperty"));
+		Assertions.assertFalse(dynamoDBPlaylistEntityInformation.isHashKeyProperty("nonHashKeyProperty"));
+		Assertions.assertFalse(dynamoDBPlaylistEntityInformation.isHashKeyProperty("nonHashKeyProperty"));
 	}
 
 	@Test
 	public void testGetIsCompositeIdProperty_DelegatesToEntityMetadata_IrrespectiveOfEntityInformationSetup() {
 
-		Assert.assertTrue(dynamoDBPlaylistEntityInformation.isCompositeHashAndRangeKeyProperty("compositeIdProperty"));
-		Assert.assertFalse(
+		Assertions.assertTrue(dynamoDBPlaylistEntityInformation.isCompositeHashAndRangeKeyProperty("compositeIdProperty"));
+		Assertions.assertFalse(
 				dynamoDBPlaylistEntityInformation.isCompositeHashAndRangeKeyProperty("nonCompositeIdProperty"));
 	}
 

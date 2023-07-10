@@ -15,11 +15,11 @@
  */
 package org.socialsignin.spring.data.dynamodb.repository.util;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.socialsignin.spring.data.dynamodb.repository.support.DynamoDBEntityInformation;
 import org.socialsignin.spring.data.dynamodb.repository.support.SimpleDynamoDBCrudRepository;
 import org.springframework.aop.TargetSource;
@@ -39,7 +39,7 @@ import com.amazonaws.services.dynamodbv2.model.TableDescription;
 import com.amazonaws.services.dynamodbv2.model.TableStatus;
 import static org.mockito.Mockito.*;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class Entity2DynamoDBTableSynchronizerTest<T, ID> {
 
 	private Entity2DynamoDBTableSynchronizer<T, ID> underTest;
@@ -58,7 +58,7 @@ public class Entity2DynamoDBTableSynchronizerTest<T, ID> {
 	@Mock
 	private DynamoDBEntityInformation<T, ID> entityInformation;
 
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		TargetSource targetSource = mock(TargetSource.class);
 		when(targetSource.getTarget()).thenReturn(repository);
@@ -69,15 +69,15 @@ public class Entity2DynamoDBTableSynchronizerTest<T, ID> {
 		when(entityInformation.getDynamoDBTableName()).thenReturn("tableName");
 
 		CreateTableRequest ctr = mock(CreateTableRequest.class);
-		when(mapper.generateCreateTableRequest(any())).thenReturn(ctr);
+		lenient().when(mapper.generateCreateTableRequest(any())).thenReturn(ctr);
 		DeleteTableRequest dtr = mock(DeleteTableRequest.class);
-		when(mapper.generateDeleteTableRequest(any())).thenReturn(dtr);
+		lenient().when(mapper.generateDeleteTableRequest(any())).thenReturn(dtr);
 
 		DescribeTableResult describeResult = mock(DescribeTableResult.class);
 		TableDescription description = mock(TableDescription.class);
-		when(description.getTableStatus()).thenReturn(TableStatus.ACTIVE.toString());
-		when(describeResult.getTable()).thenReturn(description);
-		when(amazonDynamoDB.describeTable(any(DescribeTableRequest.class))).thenReturn(describeResult);
+		lenient().when(description.getTableStatus()).thenReturn(TableStatus.ACTIVE.toString());
+		lenient().when(describeResult.getTable()).thenReturn(description);
+		lenient().when(amazonDynamoDB.describeTable(any(DescribeTableRequest.class))).thenReturn(describeResult);
 	}
 
 	public void setUp(Entity2DDL mode) {

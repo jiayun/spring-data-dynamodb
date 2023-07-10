@@ -15,11 +15,12 @@
  */
 package org.socialsignin.spring.data.dynamodb.domain;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
@@ -27,14 +28,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Pageable;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class UnpagedPageImplTest {
 
 	@Mock
@@ -45,9 +46,9 @@ public class UnpagedPageImplTest {
 
 	private UnpagedPageImpl<Object> underTest;
 
-	@Before
+	@BeforeEach
 	public void setUp() {
-		when(content.iterator()).thenReturn(iterator);
+		lenient().when(content.iterator()).thenReturn(iterator);
 		underTest = new UnpagedPageImpl<Object>(content, total);
 	}
 
@@ -93,8 +94,7 @@ public class UnpagedPageImplTest {
 	@Test
 	public void testToString() {
 		String actual = underTest.toString();
-
-		assertTrue(actual, actual.startsWith("Page 1 of 1 containing org.mockito.codegen.Iterator$MockitoMock"));
+		assertTrue(actual.startsWith("Page 1 of 1 containing org.mockito.codegen.Iterator$MockitoMock"), actual);
 	}
 
 	@Test

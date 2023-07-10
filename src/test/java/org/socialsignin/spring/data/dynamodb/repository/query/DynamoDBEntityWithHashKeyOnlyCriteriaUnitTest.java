@@ -15,19 +15,19 @@
  */
 package org.socialsignin.spring.data.dynamodb.repository.query;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.socialsignin.spring.data.dynamodb.domain.sample.User;
 import org.socialsignin.spring.data.dynamodb.repository.support.DynamoDBEntityInformation;
 
 import java.util.Date;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class DynamoDBEntityWithHashKeyOnlyCriteriaUnitTest
 		extends
 			AbstractDynamoDBQueryCriteriaUnitTest<DynamoDBEntityWithHashKeyOnlyCriteria<User, String>> {
@@ -35,7 +35,7 @@ public class DynamoDBEntityWithHashKeyOnlyCriteriaUnitTest
 	@Mock
 	private DynamoDBEntityInformation<User, String> entityInformation;
 
-	@Before
+	@BeforeEach
 	public void setUp() {
 		Mockito.when(entityInformation.getHashKeyPropertyName()).thenReturn("id");
 		criteria = new DynamoDBEntityWithHashKeyOnlyCriteria<>(entityInformation, null);
@@ -46,7 +46,7 @@ public class DynamoDBEntityWithHashKeyOnlyCriteriaUnitTest
 		Mockito.when(entityInformation.isGlobalIndexHashKeyProperty("name")).thenReturn(true);
 		criteria.withPropertyEquals("name", "some name", String.class);
 		boolean hasIndexHashKeyEqualCondition = criteria.hasIndexHashKeyEqualCondition();
-		Assert.assertTrue(hasIndexHashKeyEqualCondition);
+		Assertions.assertTrue(hasIndexHashKeyEqualCondition);
 	}
 
 	@Test
@@ -54,7 +54,7 @@ public class DynamoDBEntityWithHashKeyOnlyCriteriaUnitTest
 		Mockito.when(entityInformation.isGlobalIndexHashKeyProperty("id")).thenReturn(false);
 		criteria.withPropertyEquals("id", "some id", String.class);
 		boolean hasIndexHashKeyEqualCondition = criteria.hasIndexHashKeyEqualCondition();
-		Assert.assertFalse(hasIndexHashKeyEqualCondition);
+		Assertions.assertFalse(hasIndexHashKeyEqualCondition);
 	}
 
 	@Test
@@ -62,7 +62,7 @@ public class DynamoDBEntityWithHashKeyOnlyCriteriaUnitTest
 		Mockito.when(entityInformation.isGlobalIndexHashKeyProperty("id")).thenReturn(true);
 		criteria.withPropertyEquals("id", "some id", String.class);
 		boolean hasIndexHashKeyEqualCondition = criteria.hasIndexHashKeyEqualCondition();
-		Assert.assertTrue(hasIndexHashKeyEqualCondition);
+		Assertions.assertTrue(hasIndexHashKeyEqualCondition);
 	}
 
 	@Test
@@ -70,7 +70,7 @@ public class DynamoDBEntityWithHashKeyOnlyCriteriaUnitTest
 		Mockito.when(entityInformation.isGlobalIndexHashKeyProperty("joinDate")).thenReturn(false);
 		criteria.withPropertyEquals("joinDate", new Date(), Date.class);
 		boolean hasIndexHashKeyEqualCondition = criteria.hasIndexHashKeyEqualCondition();
-		Assert.assertFalse(hasIndexHashKeyEqualCondition);
+		Assertions.assertFalse(hasIndexHashKeyEqualCondition);
 	}
 
 	@Test
@@ -78,7 +78,7 @@ public class DynamoDBEntityWithHashKeyOnlyCriteriaUnitTest
 		Mockito.when(entityInformation.isGlobalIndexRangeKeyProperty("name")).thenReturn(true);
 		criteria.withPropertyEquals("name", "some name", String.class);
 		boolean hasIndexRangeKeyCondition = criteria.hasIndexRangeKeyCondition();
-		Assert.assertTrue(hasIndexRangeKeyCondition);
+		Assertions.assertTrue(hasIndexRangeKeyCondition);
 	}
 
 	@Test
@@ -86,7 +86,7 @@ public class DynamoDBEntityWithHashKeyOnlyCriteriaUnitTest
 		Mockito.when(entityInformation.isGlobalIndexRangeKeyProperty("id")).thenReturn(false);
 		criteria.withPropertyEquals("id", "some id", String.class);
 		boolean hasIndexRangeKeyCondition = criteria.hasIndexRangeKeyCondition();
-		Assert.assertFalse(hasIndexRangeKeyCondition);
+		Assertions.assertFalse(hasIndexRangeKeyCondition);
 	}
 
 	@Test
@@ -94,7 +94,7 @@ public class DynamoDBEntityWithHashKeyOnlyCriteriaUnitTest
 		Mockito.when(entityInformation.isGlobalIndexRangeKeyProperty("id")).thenReturn(true);
 		criteria.withPropertyEquals("id", "some id", String.class);
 		boolean hasIndexRangeKeyCondition = criteria.hasIndexRangeKeyCondition();
-		Assert.assertTrue(hasIndexRangeKeyCondition);
+		Assertions.assertTrue(hasIndexRangeKeyCondition);
 	}
 
 	@Test
@@ -102,7 +102,7 @@ public class DynamoDBEntityWithHashKeyOnlyCriteriaUnitTest
 		Mockito.when(entityInformation.isGlobalIndexRangeKeyProperty("joinDate")).thenReturn(false);
 		criteria.withPropertyEquals("joinDate", new Date(), Date.class);
 		boolean hasIndexRangeKeyCondition = criteria.hasIndexRangeKeyCondition();
-		Assert.assertFalse(hasIndexRangeKeyCondition);
+		Assertions.assertFalse(hasIndexRangeKeyCondition);
 	}
 
 	// repeat
@@ -112,7 +112,7 @@ public class DynamoDBEntityWithHashKeyOnlyCriteriaUnitTest
 		Mockito.when(entityInformation.isGlobalIndexHashKeyProperty("name")).thenReturn(true);
 		criteria.withPropertyBetween("name", "some name", "some other name", String.class);
 		boolean hasIndexHashKeyEqualCondition = criteria.hasIndexHashKeyEqualCondition();
-		Assert.assertFalse(hasIndexHashKeyEqualCondition);
+		Assertions.assertFalse(hasIndexHashKeyEqualCondition);
 	}
 
 	@Test
@@ -120,7 +120,7 @@ public class DynamoDBEntityWithHashKeyOnlyCriteriaUnitTest
 		Mockito.when(entityInformation.isGlobalIndexHashKeyProperty("name")).thenReturn(false);
 		criteria.withPropertyBetween("name", "some name", "some other name", String.class);
 		boolean hasIndexHashKeyEqualCondition = criteria.hasIndexHashKeyEqualCondition();
-		Assert.assertFalse(hasIndexHashKeyEqualCondition);
+		Assertions.assertFalse(hasIndexHashKeyEqualCondition);
 	}
 
 	@Test
@@ -128,7 +128,7 @@ public class DynamoDBEntityWithHashKeyOnlyCriteriaUnitTest
 		Mockito.when(entityInformation.isGlobalIndexHashKeyProperty("id")).thenReturn(true);
 		criteria.withPropertyBetween("id", "some id", "some other id", String.class);
 		boolean hasIndexHashKeyEqualCondition = criteria.hasIndexHashKeyEqualCondition();
-		Assert.assertFalse(hasIndexHashKeyEqualCondition);
+		Assertions.assertFalse(hasIndexHashKeyEqualCondition);
 	}
 
 	@Test
@@ -136,7 +136,7 @@ public class DynamoDBEntityWithHashKeyOnlyCriteriaUnitTest
 		Mockito.when(entityInformation.isGlobalIndexHashKeyProperty("joinDate")).thenReturn(false);
 		criteria.withPropertyBetween("joinDate", new Date(), new Date(), Date.class);
 		boolean hasIndexHashKeyEqualCondition = criteria.hasIndexHashKeyEqualCondition();
-		Assert.assertFalse(hasIndexHashKeyEqualCondition);
+		Assertions.assertFalse(hasIndexHashKeyEqualCondition);
 	}
 
 	@Test
@@ -144,7 +144,7 @@ public class DynamoDBEntityWithHashKeyOnlyCriteriaUnitTest
 		Mockito.when(entityInformation.isGlobalIndexRangeKeyProperty("name")).thenReturn(true);
 		criteria.withPropertyBetween("name", "some name", "some other name", String.class);
 		boolean hasIndexRangeKeyCondition = criteria.hasIndexRangeKeyCondition();
-		Assert.assertTrue(hasIndexRangeKeyCondition);
+		Assertions.assertTrue(hasIndexRangeKeyCondition);
 	}
 
 	@Test
@@ -152,7 +152,7 @@ public class DynamoDBEntityWithHashKeyOnlyCriteriaUnitTest
 		Mockito.when(entityInformation.isGlobalIndexRangeKeyProperty("id")).thenReturn(false);
 		criteria.withPropertyBetween("id", "some id", "some other id", String.class);
 		boolean hasIndexRangeKeyCondition = criteria.hasIndexRangeKeyCondition();
-		Assert.assertFalse(hasIndexRangeKeyCondition);
+		Assertions.assertFalse(hasIndexRangeKeyCondition);
 	}
 
 	@Test
@@ -160,7 +160,7 @@ public class DynamoDBEntityWithHashKeyOnlyCriteriaUnitTest
 		Mockito.when(entityInformation.isGlobalIndexRangeKeyProperty("id")).thenReturn(true);
 		criteria.withPropertyBetween("id", "some id", "some other id", String.class);
 		boolean hasIndexRangeKeyCondition = criteria.hasIndexRangeKeyCondition();
-		Assert.assertTrue(hasIndexRangeKeyCondition);
+		Assertions.assertTrue(hasIndexRangeKeyCondition);
 	}
 
 	@Test
@@ -168,7 +168,7 @@ public class DynamoDBEntityWithHashKeyOnlyCriteriaUnitTest
 		Mockito.when(entityInformation.isGlobalIndexRangeKeyProperty("joinDate")).thenReturn(false);
 		criteria.withPropertyBetween("joinDate", new Date(), new Date(), Date.class);
 		boolean hasIndexRangeKeyCondition = criteria.hasIndexRangeKeyCondition();
-		Assert.assertFalse(hasIndexRangeKeyCondition);
+		Assertions.assertFalse(hasIndexRangeKeyCondition);
 	}
 
 }

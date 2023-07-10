@@ -15,20 +15,14 @@
  */
 package org.socialsignin.spring.data.dynamodb.mapping;
 
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.Test;
 
 import java.util.Date;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 @SuppressWarnings("deprecation")
 public class DefaultDynamoDBDateMarshallerTest {
-
-	@Rule
-	public ExpectedException expectedException = ExpectedException.none();
 
 	private DefaultDynamoDBDateMarshaller underTest = new DefaultDynamoDBDateMarshaller();
 
@@ -62,10 +56,9 @@ public class DefaultDynamoDBDateMarshallerTest {
 
 	@Test
 	public void testUnmarshallGarbage() {
-		expectedException.expect(IllegalArgumentException.class);
-		expectedException.expectMessage("Could not unmarshall 'garbage' via yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-
-		underTest.unmarshall(Date.class, "garbage");
+		assertThrows(IllegalArgumentException.class, () -> {
+			underTest.unmarshall(Date.class, "garbage");
+		}, "Could not unmarshall 'garbage' via yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 	}
 
 }

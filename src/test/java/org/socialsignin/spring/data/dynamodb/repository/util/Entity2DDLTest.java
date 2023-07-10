@@ -15,15 +15,11 @@
  */
 package org.socialsignin.spring.data.dynamodb.repository.util;
 
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import static org.junit.Assert.assertEquals;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class Entity2DDLTest {
-
-	@Rule
-	public ExpectedException expectedException = ExpectedException.none();
 
 	@Test
 	public void testFromExistingValue() {
@@ -34,9 +30,7 @@ public class Entity2DDLTest {
 
 	@Test
 	public void testFromNotExistingValue() {
-		expectedException.expect(IllegalArgumentException.class);
-
-		Entity2DDL.fromValue("doesnt exist");
+		assertThrows(IllegalArgumentException.class, () -> Entity2DDL.fromValue("doesnt exist"));
 	}
 
 }

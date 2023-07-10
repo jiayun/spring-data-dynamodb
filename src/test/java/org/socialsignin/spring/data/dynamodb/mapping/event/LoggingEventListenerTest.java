@@ -17,12 +17,12 @@ package org.socialsignin.spring.data.dynamodb.mapping.event;
 
 import com.amazonaws.services.dynamodbv2.datamodeling.PaginatedQueryList;
 import com.amazonaws.services.dynamodbv2.datamodeling.PaginatedScanList;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.socialsignin.spring.data.dynamodb.domain.sample.User;
 import uk.org.lidalia.slf4jext.Level;
 import uk.org.lidalia.slf4jtest.TestLogger;
@@ -33,11 +33,12 @@ import java.util.List;
 
 import static java.util.Arrays.asList;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 import static uk.org.lidalia.slf4jtest.LoggingEvent.trace;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class LoggingEventListenerTest {
 
 	private final TestLogger logger = TestLoggerFactory.getTestLogger(LoggingEventListener.class);
@@ -49,7 +50,7 @@ public class LoggingEventListenerTest {
 
 	private LoggingEventListener underTest;
 
-	@Before
+	@BeforeEach
 	public void setUp() {
 		underTest = new LoggingEventListener();
 
@@ -57,11 +58,11 @@ public class LoggingEventListenerTest {
 
 		List<User> queryList = new ArrayList<>();
 		queryList.add(sampleEntity);
-		when(sampleQueryList.stream()).thenReturn(queryList.stream());
-		when(sampleScanList.stream()).thenReturn(queryList.stream());
+		lenient().when(sampleQueryList.stream()).thenReturn(queryList.stream());
+		lenient().when(sampleScanList.stream()).thenReturn(queryList.stream());
 	}
 
-	@After
+	@AfterEach
 	public void clearLoggers() {
 		TestLoggerFactory.clear();
 	}

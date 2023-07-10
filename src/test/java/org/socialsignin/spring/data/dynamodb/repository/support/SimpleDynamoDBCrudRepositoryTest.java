@@ -18,16 +18,13 @@ package org.socialsignin.spring.data.dynamodb.repository.support;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper.FailedBatch;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBScanExpression;
 import com.amazonaws.services.dynamodbv2.datamodeling.PaginatedScanList;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.socialsignin.spring.data.dynamodb.core.DynamoDBOperations;
 import org.socialsignin.spring.data.dynamodb.domain.sample.Playlist;
 import org.socialsignin.spring.data.dynamodb.domain.sample.PlaylistId;
@@ -41,14 +38,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyIterable;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for {@link SimpleDynamoDBCrudRepository}.
@@ -56,10 +50,8 @@ import static org.mockito.Mockito.when;
  * @author Michael Lavelle
  * @author Sebastian Just
  */
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class SimpleDynamoDBCrudRepositoryTest {
-	@Rule
-	public ExpectedException expectedException = ExpectedException.none();
 
 	@Mock
 	private PaginatedScanList<User> findAllResultMock;
@@ -79,7 +71,7 @@ public class SimpleDynamoDBCrudRepositoryTest {
 	private SimpleDynamoDBCrudRepository<User, Long> repoForEntityWithOnlyHashKey;
 	private SimpleDynamoDBCrudRepository<Playlist, PlaylistId> repoForEntityWithHashAndRangeKey;
 
-	@Before
+	@BeforeEach
 	public void setUp() {
 
 		testUser = new User();
@@ -91,24 +83,24 @@ public class SimpleDynamoDBCrudRepositoryTest {
 		testPlaylist = new Playlist(testPlaylistId);
 
 		when(entityWithSimpleIdInformation.getJavaType()).thenReturn(User.class);
-		when(entityWithSimpleIdInformation.getHashKey(1l)).thenReturn(1l);
+		lenient().when(entityWithSimpleIdInformation.getHashKey(1l)).thenReturn(1l);
 
-		when(mockEnableScanPermissions.isFindAllUnpaginatedScanEnabled()).thenReturn(true);
-		when(mockEnableScanPermissions.isDeleteAllUnpaginatedScanEnabled()).thenReturn(true);
-		when(mockEnableScanPermissions.isCountUnpaginatedScanEnabled()).thenReturn(true);
+		lenient().when(mockEnableScanPermissions.isFindAllUnpaginatedScanEnabled()).thenReturn(true);
+		lenient().when(mockEnableScanPermissions.isDeleteAllUnpaginatedScanEnabled()).thenReturn(true);
+		lenient().when(mockEnableScanPermissions.isCountUnpaginatedScanEnabled()).thenReturn(true);
 
-		when(entityWithCompositeIdInformation.getJavaType()).thenReturn(Playlist.class);
-		when(entityWithCompositeIdInformation.getHashKey(testPlaylistId)).thenReturn("michael");
-		when(entityWithCompositeIdInformation.getRangeKey(testPlaylistId)).thenReturn("playlist1");
-		when(entityWithCompositeIdInformation.isRangeKeyAware()).thenReturn(true);
+		lenient().when(entityWithCompositeIdInformation.getJavaType()).thenReturn(Playlist.class);
+		lenient().when(entityWithCompositeIdInformation.getHashKey(testPlaylistId)).thenReturn("michael");
+		lenient().when(entityWithCompositeIdInformation.getRangeKey(testPlaylistId)).thenReturn("playlist1");
+		lenient().when(entityWithCompositeIdInformation.isRangeKeyAware()).thenReturn(true);
 
 		repoForEntityWithOnlyHashKey = new SimpleDynamoDBCrudRepository<>(entityWithSimpleIdInformation,
 				dynamoDBOperations, mockEnableScanPermissions);
 		repoForEntityWithHashAndRangeKey = new SimpleDynamoDBCrudRepository<>(entityWithCompositeIdInformation,
 				dynamoDBOperations, mockEnableScanPermissions);
 
-		when(dynamoDBOperations.load(User.class, 1l)).thenReturn(testUser);
-		when(dynamoDBOperations.load(Playlist.class, "michael", "playlist1")).thenReturn(testPlaylist);
+		lenient().when(dynamoDBOperations.load(User.class, 1l)).thenReturn(testUser);
+		lenient().when(dynamoDBOperations.load(Playlist.class, "michael", "playlist1")).thenReturn(testPlaylist);
 
 	}
 
@@ -125,7 +117,7 @@ public class SimpleDynamoDBCrudRepositoryTest {
 
 		ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
 		Mockito.verify(dynamoDBOperations).delete(captor.capture());
-		Assert.assertEquals(Long.toString(id), captor.getValue().getId());
+		assertEquals(Long.toString(id), captor.getValue().getId());
 	}
 
 	@Test
@@ -164,10 +156,11 @@ public class SimpleDynamoDBCrudRepositoryTest {
 	 *
 	 * @see <a href="https://jira.spring.io/browse/DATAJPA-177">DATAJPA-177</a>
 	 */
-	@Test(expected = EmptyResultDataAccessException.class)
+	@Test
 	public void throwsExceptionIfEntityOnlyHashKeyToDeleteDoesNotExist() {
-
-		repoForEntityWithOnlyHashKey.deleteById(4711L);
+		assertThrows(EmptyResultDataAccessException.class, () -> {
+			repoForEntityWithOnlyHashKey.deleteById(4711L);
+		});
 	}
 
 	@Test
@@ -180,7 +173,7 @@ public class SimpleDynamoDBCrudRepositoryTest {
 
 		ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
 		Mockito.verify(dynamoDBOperations).delete(captor.capture());
-		Assert.assertEquals(Long.toString(id), captor.getValue().getId());
+		assertEquals(Long.toString(id), captor.getValue().getId());
 	}
 
 	@Test
@@ -223,19 +216,6 @@ public class SimpleDynamoDBCrudRepositoryTest {
 		verify(dynamoDBOperations).save(entity);
 	}
 
-	/**
-	 * @see <a href="https://jira.spring.io/browse/DATAJPA-177">DATAJPA-177</a>
-	 */
-	@Test(expected = EmptyResultDataAccessException.class)
-	public void throwsExceptionIfEntityWithHashAndRangeKeyToDeleteDoesNotExist() {
-
-		PlaylistId playlistId = new PlaylistId();
-		playlistId.setUserName("someUser");
-		playlistId.setPlaylistName("somePlaylistName");
-
-		repoForEntityWithHashAndRangeKey.deleteById(playlistId);
-	}
-
 	@Test
 	public void testBatchSave() {
 
@@ -264,10 +244,23 @@ public class SimpleDynamoDBCrudRepositoryTest {
 		entities.add(new User());
 		when(dynamoDBOperations.batchSave(anyIterable())).thenReturn(failures);
 
-		expectedException.expect(BatchWriteException.class);
-		expectedException.expectMessage(
-				"Processing of entities failed!");
+		assertThrows(BatchWriteException.class, () -> {
+			repoForEntityWithOnlyHashKey.saveAll(entities);
+		}, "Processing of entities failed!");
+	}
 
-		repoForEntityWithOnlyHashKey.saveAll(entities);
+	/**
+	 * @see <a href="https://jira.spring.io/browse/DATAJPA-177">DATAJPA-177</a>
+	 */
+	@Test
+	public void throwsExceptionIfEntityWithHashAndRangeKeyToDeleteDoesNotExist() {
+
+		PlaylistId playlistId = new PlaylistId();
+		playlistId.setUserName("someUser");
+		playlistId.setPlaylistName("somePlaylistName");
+
+		assertThrows(EmptyResultDataAccessException.class, () -> {
+			repoForEntityWithHashAndRangeKey.deleteById(playlistId);
+		});
 	}
 }

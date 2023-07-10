@@ -18,11 +18,11 @@ package org.socialsignin.spring.data.dynamodb.config;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.socialsignin.spring.data.dynamodb.mapping.DynamoDBMappingContext;
 import org.socialsignin.spring.data.dynamodb.mapping.event.AuditingEventListener;
 import org.springframework.beans.factory.parsing.ProblemReporter;
@@ -42,15 +42,12 @@ import org.springframework.core.io.Resource;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.verify;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.*;
 import static org.socialsignin.spring.data.dynamodb.config.BeanNames.MAPPING_CONTEXT_BEAN_NAME;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class DynamoDBAuditingBeanDefinitionParserTest {
 
 	private DynamoDBAuditingBeanDefinitionParser underTest;
@@ -82,7 +79,7 @@ public class DynamoDBAuditingBeanDefinitionParserTest {
 	private NamespaceHandlerResolver namespaceHandlerResolver;
 	private DocumentDefaultsDefinition documentDefaultsDefinition;
 
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		underTest = new DynamoDBAuditingBeanDefinitionParser();
 
@@ -97,8 +94,8 @@ public class DynamoDBAuditingBeanDefinitionParserTest {
 				namespaceHandlerResolver);
 		parserContext = new ParserContext(readerContext, beanDefinitionParserDelegate);
 
-		when(beanDefinitionParserDelegate.getDefaults()).thenReturn(documentDefaultsDefinition);
-		when(beanNameGenerator.generateBeanName(any(), eq(registry))).thenReturn("dynamoDBMappingContext");
+		lenient().when(beanDefinitionParserDelegate.getDefaults()).thenReturn(documentDefaultsDefinition);
+		lenient().when(beanNameGenerator.generateBeanName(any(), eq(registry))).thenReturn("dynamoDBMappingContext");
 	}
 
 	@Test

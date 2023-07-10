@@ -16,8 +16,8 @@
 package org.socialsignin.spring.data.dynamodb.repository.query;
 
 import com.amazonaws.services.dynamodbv2.model.AttributeValue;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -47,7 +47,7 @@ public abstract class AbstractDynamoDBQueryCriteriaUnitTest<C extends AbstractDy
 		String dateInUTCString = utcDateFormat.format(now);
 
 		// Sanity check - confirm that the EST and UTC strings aren't equal
-		Assert.assertNotEquals(dateInESTString, dateInUTCString);
+		Assertions.assertNotEquals(dateInESTString, dateInUTCString);
 
 		List<AttributeValue> attributeValueList = new ArrayList<AttributeValue>();
 
@@ -58,7 +58,7 @@ public abstract class AbstractDynamoDBQueryCriteriaUnitTest<C extends AbstractDy
 		AttributeValue resultingValue = attributeValueList.get(0);
 
 		// Ensuring that the resulting AttributeValue is encoded as a UTC string
-		Assert.assertEquals(dateInUTCString, resultingValue.getS());
+		Assertions.assertEquals(dateInUTCString, resultingValue.getS());
 	}
 
 	@Test
@@ -77,7 +77,7 @@ public abstract class AbstractDynamoDBQueryCriteriaUnitTest<C extends AbstractDy
 		String dateInUTCString = utcDateFormat.format(now);
 
 		// Sanity check - confirm that the EST and UTC strings aren't equal
-		Assert.assertNotEquals(dateInESTString, dateInUTCString);
+		Assertions.assertNotEquals(dateInESTString, dateInUTCString);
 
 		List<AttributeValue> attributeValueList = new ArrayList<AttributeValue>();
 
@@ -94,7 +94,7 @@ public abstract class AbstractDynamoDBQueryCriteriaUnitTest<C extends AbstractDy
 		AttributeValue resultingValue = attributeValueList.get(0);
 
 		// Ensuring that the resulting AttributeValue is encoded as a UTC string
-		Assert.assertEquals(dateStringList, resultingValue.getSS());
+		Assertions.assertEquals(dateStringList, resultingValue.getSS());
 	}
 
 }

@@ -16,7 +16,7 @@
 package org.socialsignin.spring.data.dynamodb.config;
 
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTable;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.socialsignin.spring.data.dynamodb.mapping.DynamoDBMappingContext;
 import org.socialsignin.spring.data.dynamodb.mapping.event.BeforeSaveEvent;
 import org.springframework.context.support.AbstractApplicationContext;
@@ -30,7 +30,7 @@ import java.util.Date;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Integration test for the auditing support.
