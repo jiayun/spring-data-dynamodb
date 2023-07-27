@@ -15,20 +15,17 @@
  */
 package org.socialsignin.spring.data.dynamodb.domain.sample;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBAttribute;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBHashKey;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBIgnore;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBRangeKey;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTable;
+import jakarta.persistence.Table;
 import org.springframework.data.annotation.Id;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.*;
 
-@DynamoDBTable(tableName = "CustomerDocuments")
+@DynamoDbBean
+@Table(name = "CustomerDocuments")
 public class CustomerDocument {
 
 	@Id
 	private CustomerDocumentId customerDocumentId;
 
-	@DynamoDBAttribute
 	private String s3Location;
 
 	public CustomerDocument() {
@@ -39,7 +36,8 @@ public class CustomerDocument {
 		this.s3Location = s3Location;
 	}
 
-	@DynamoDBHashKey(attributeName = "customerId|documentType")
+	@DynamoDbPartitionKey
+	@DynamoDbAttribute("customerId|documentType")
 	public String getCustomerDocumentKey() {
 
 		if (customerDocumentId == null) {
@@ -60,7 +58,8 @@ public class CustomerDocument {
 
 	}
 
-	@DynamoDBRangeKey(attributeName = "version")
+	@DynamoDbSortKey
+	@DynamoDbAttribute("version")
 	public String getVersion() {
 
 		if (customerDocumentId == null) {
@@ -81,7 +80,7 @@ public class CustomerDocument {
 
 	}
 
-	@DynamoDBIgnore
+	@DynamoDbIgnore
 	public String getCustomerId() {
 
 		if (customerDocumentId == null) {
@@ -92,7 +91,7 @@ public class CustomerDocument {
 
 	}
 
-	@DynamoDBIgnore
+	@DynamoDbIgnore
 	public String getDocumentType() {
 
 		if (customerDocumentId == null) {
@@ -103,7 +102,7 @@ public class CustomerDocument {
 
 	}
 
-	@DynamoDBIgnore
+	@DynamoDbIgnore
 	public CustomerDocumentId getCustomerDocumentId() {
 		return customerDocumentId;
 	}

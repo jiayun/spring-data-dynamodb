@@ -29,14 +29,10 @@ import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.ContextStoppedEvent;
 import org.springframework.data.repository.core.RepositoryInformation;
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
-import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
-import com.amazonaws.services.dynamodbv2.model.DeleteTableRequest;
-import com.amazonaws.services.dynamodbv2.model.DescribeTableRequest;
-import com.amazonaws.services.dynamodbv2.model.DescribeTableResult;
-import com.amazonaws.services.dynamodbv2.model.TableDescription;
-import com.amazonaws.services.dynamodbv2.model.TableStatus;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.model.*;
+
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -44,9 +40,9 @@ public class Entity2DynamoDBTableSynchronizerTest<T, ID> {
 
 	private Entity2DynamoDBTableSynchronizer<T, ID> underTest;
 	@Mock
-	private AmazonDynamoDB amazonDynamoDB;
+	private DynamoDbClient amazonDynamoDB;
 	@Mock
-	private DynamoDBMapper mapper;
+	private DynamoDbEnhancedClient mapper;
 	@Mock
 	private ProxyFactory factory;
 	@Mock
@@ -69,14 +65,14 @@ public class Entity2DynamoDBTableSynchronizerTest<T, ID> {
 		when(entityInformation.getDynamoDBTableName()).thenReturn("tableName");
 
 		CreateTableRequest ctr = mock(CreateTableRequest.class);
-		lenient().when(mapper.generateCreateTableRequest(any())).thenReturn(ctr);
+//		lenient().when(mapper.generateCreateTableRequest(any())).thenReturn(ctr);
 		DeleteTableRequest dtr = mock(DeleteTableRequest.class);
-		lenient().when(mapper.generateDeleteTableRequest(any())).thenReturn(dtr);
+//		lenient().when(mapper.generateDeleteTableRequest(any())).thenReturn(dtr);
 
-		DescribeTableResult describeResult = mock(DescribeTableResult.class);
+		DescribeTableResponse describeResult = mock(DescribeTableResponse.class);
 		TableDescription description = mock(TableDescription.class);
-		lenient().when(description.getTableStatus()).thenReturn(TableStatus.ACTIVE.toString());
-		lenient().when(describeResult.getTable()).thenReturn(description);
+		lenient().when(description.tableStatus()).thenReturn(TableStatus.ACTIVE);
+		lenient().when(describeResult.table()).thenReturn(description);
 		lenient().when(amazonDynamoDB.describeTable(any(DescribeTableRequest.class))).thenReturn(describeResult);
 	}
 
@@ -122,7 +118,7 @@ public class Entity2DynamoDBTableSynchronizerTest<T, ID> {
 
 		runContextStart();
 		verify(amazonDynamoDB).deleteTable(any(DeleteTableRequest.class));
-		verify(amazonDynamoDB).createTable(any());
+		verify(amazonDynamoDB).createTable(any(CreateTableRequest.class));
 		verify(amazonDynamoDB).describeTable(any(DescribeTableRequest.class));
 
 		runContextStop();
@@ -144,7 +140,7 @@ public class Entity2DynamoDBTableSynchronizerTest<T, ID> {
 		setUp(Entity2DDL.CREATE_ONLY);
 
 		runContextStart();
-		verify(amazonDynamoDB).createTable(any());
+		verify(amazonDynamoDB).createTable(any(CreateTableRequest.class));
 		verify(amazonDynamoDB).describeTable(any(DescribeTableRequest.class));
 
 		runContextStop();

@@ -15,9 +15,9 @@
  */
 package org.socialsignin.spring.data.dynamodb.repository.query;
 
-import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -58,7 +58,7 @@ public abstract class AbstractDynamoDBQueryCriteriaUnitTest<C extends AbstractDy
 		AttributeValue resultingValue = attributeValueList.get(0);
 
 		// Ensuring that the resulting AttributeValue is encoded as a UTC string
-		Assertions.assertEquals(dateInUTCString, resultingValue.getS());
+		Assertions.assertEquals(dateInUTCString, resultingValue.s());
 	}
 
 	@Test
@@ -94,7 +94,7 @@ public abstract class AbstractDynamoDBQueryCriteriaUnitTest<C extends AbstractDy
 		AttributeValue resultingValue = attributeValueList.get(0);
 
 		// Ensuring that the resulting AttributeValue is encoded as a UTC string
-		Assertions.assertEquals(dateStringList, resultingValue.getSS());
+		Assertions.assertEquals(dateStringList, resultingValue.ss());
 	}
 
 }

@@ -15,7 +15,6 @@
  */
 package org.socialsignin.spring.data.dynamodb.mapping;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBHashKey;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,8 +25,15 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mapping.model.Property;
 import org.springframework.data.mapping.model.SimpleTypeHolder;
 import org.springframework.data.util.TypeInformation;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 
+import java.beans.BeanInfo;
+import java.beans.IntrospectionException;
+import java.beans.Introspector;
+import java.beans.PropertyDescriptor;
+import java.util.Arrays;
 import java.util.Comparator;
+import java.util.NoSuchElementException;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -37,7 +43,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class DynamoDBPersistentEntityTest {
 
 	static class DynamoDBPersistentEntity {
-		@DynamoDBHashKey
 		private String id;
 
 		@Id
@@ -45,6 +50,11 @@ public class DynamoDBPersistentEntityTest {
 
 		@SuppressWarnings("unused")
 		private String name;
+
+		@DynamoDbPartitionKey
+		public String getId() {
+			return id;
+		}
 	}
 
 	@Mock
@@ -70,8 +80,12 @@ public class DynamoDBPersistentEntityTest {
 	}
 
 	@Test
-	public void testIdProperty() throws NoSuchFieldException {
-		Property prop = Property.of(cti, DynamoDBPersistentEntity.class.getDeclaredField("id"));
+	public void testIdProperty() throws NoSuchFieldException, IntrospectionException {
+		BeanInfo beanInfo = Introspector.getBeanInfo(DynamoDBPersistentEntity.class);
+        PropertyDescriptor pd = Arrays.stream(beanInfo.getPropertyDescriptors())
+                .filter(p -> p.getName().equals("id")).findFirst().orElse(null);
+
+		Property prop = Property.of(cti, DynamoDBPersistentEntity.class.getDeclaredField("id"), pd);
 		DynamoDBPersistentProperty property = new DynamoDBPersistentPropertyImpl(prop, underTest,
 				SimpleTypeHolder.DEFAULT);
 		DynamoDBPersistentProperty actual = underTest.returnPropertyIfBetterIdPropertyCandidateOrNull(property);

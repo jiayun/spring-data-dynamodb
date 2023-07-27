@@ -15,8 +15,6 @@
  */
 package org.socialsignin.spring.data.dynamodb.mapping.event;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.PaginatedQueryList;
-import com.amazonaws.services.dynamodbv2.datamodeling.PaginatedScanList;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +22,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.socialsignin.spring.data.dynamodb.domain.sample.User;
+import software.amazon.awssdk.enhanced.dynamodb.model.PageIterable;
 import uk.org.lidalia.slf4jext.Level;
 import uk.org.lidalia.slf4jtest.TestLogger;
 import uk.org.lidalia.slf4jtest.TestLoggerFactory;
@@ -35,7 +34,6 @@ import static java.util.Arrays.asList;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.when;
 import static uk.org.lidalia.slf4jtest.LoggingEvent.trace;
 
 @ExtendWith(MockitoExtension.class)
@@ -44,9 +42,9 @@ public class LoggingEventListenerTest {
 	private final TestLogger logger = TestLoggerFactory.getTestLogger(LoggingEventListener.class);
 	private final User sampleEntity = new User();
 	@Mock
-	private PaginatedQueryList<User> sampleQueryList;
+	private PageIterable<User> sampleQueryList;
 	@Mock
-	private PaginatedScanList<User> sampleScanList;
+	private PageIterable<User> sampleScanList;
 
 	private LoggingEventListener underTest;
 
@@ -58,8 +56,8 @@ public class LoggingEventListenerTest {
 
 		List<User> queryList = new ArrayList<>();
 		queryList.add(sampleEntity);
-		lenient().when(sampleQueryList.stream()).thenReturn(queryList.stream());
-		lenient().when(sampleScanList.stream()).thenReturn(queryList.stream());
+		lenient().when(sampleQueryList.items().stream()).thenReturn(queryList.stream());
+		lenient().when(sampleScanList.items().stream()).thenReturn(queryList.stream());
 	}
 
 	@AfterEach

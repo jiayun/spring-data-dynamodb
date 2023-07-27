@@ -15,21 +15,14 @@
  */
 package org.socialsignin.spring.data.dynamodb.repository.support;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBAttribute;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBHashKey;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBIndexHashKey;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBIndexRangeKey;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMarshaller;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMarshalling;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBRangeKey;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTable;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTypeConverted;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTypeConverter;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBVersionAttribute;
+import jakarta.persistence.Table;
 import org.socialsignin.spring.data.dynamodb.core.DynamoDBOperations;
 import org.springframework.util.Assert;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
+import software.amazon.awssdk.enhanced.dynamodb.AttributeConverter;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.*;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -54,11 +47,17 @@ public class DynamoDBEntityMetadataSupport<T, ID> implements DynamoDBHashKeyExtr
 	private List<String> globalIndexRangeKeyPropertyNames;
 
 	private String dynamoDBTableName;
-	private Map<String, String[]> globalSecondaryIndexNames = new HashMap<>();
+	private Map<String, String[]> globalSecondaryIndexNames;
+	private DynamoDbTable<T> table;
 
 	@Override
 	public String getDynamoDBTableName() {
 		return dynamoDBTableName;
+	}
+
+	@Override
+	public DynamoDbTable<T> getTable() {
+		return table;
 	}
 
 	/**
@@ -86,27 +85,26 @@ public class DynamoDBEntityMetadataSupport<T, ID> implements DynamoDBHashKeyExtr
         Assert.notNull(domainType, "Domain type must not be null!");
         this.domainType = domainType;
 
-        DynamoDBTable table = this.domainType.getAnnotation(DynamoDBTable.class);
-        Assert.notNull(table, "Domain type must by annotated with DynamoDBTable!");
+        Table table = this.domainType.getAnnotation(Table.class);
+        Assert.notNull(table, "Domain type must by annotated with Table!");
+		this.dynamoDBTableName = table.name();
 
 		if (dynamoDBOperations != null) {
-			this.dynamoDBTableName = dynamoDBOperations.getOverriddenTableName(domainType, table.tableName());
-		} else {
-			this.dynamoDBTableName = table.tableName();
+			this.table = dynamoDBOperations.getDynamoDbTable(domainType, table.name());
 		}
         this.hashKeyPropertyName = null;
         this.globalSecondaryIndexNames = new HashMap<>();
         this.globalIndexHashKeyPropertyNames = new ArrayList<>();
         this.globalIndexRangeKeyPropertyNames = new ArrayList<>();
         ReflectionUtils.doWithMethods(domainType, method -> {
-            if (method.getAnnotation(DynamoDBHashKey.class) != null) {
+            if (method.getAnnotation(DynamoDbPartitionKey.class) != null) {
                 hashKeyPropertyName = getPropertyNameForAccessorMethod(method);
             }
-            if (method.getAnnotation(DynamoDBRangeKey.class) != null) {
+            if (method.getAnnotation(DynamoDbSortKey.class) != null) {
                 hasRangeKey = true;
             }
-            DynamoDBIndexRangeKey dynamoDBRangeKeyAnnotation = method.getAnnotation(DynamoDBIndexRangeKey.class);
-            DynamoDBIndexHashKey dynamoDBHashKeyAnnotation = method.getAnnotation(DynamoDBIndexHashKey.class);
+            DynamoDbSecondarySortKey dynamoDBRangeKeyAnnotation = method.getAnnotation(DynamoDbSecondarySortKey.class);
+            DynamoDbSecondaryPartitionKey dynamoDBHashKeyAnnotation = method.getAnnotation(DynamoDbSecondaryPartitionKey.class);
 
             if (dynamoDBRangeKeyAnnotation != null) {
                 addGlobalSecondaryIndexNames(method, dynamoDBRangeKeyAnnotation);
@@ -116,14 +114,14 @@ public class DynamoDBEntityMetadataSupport<T, ID> implements DynamoDBHashKeyExtr
             }
         });
         ReflectionUtils.doWithFields(domainType, field -> {
-            if (field.getAnnotation(DynamoDBHashKey.class) != null) {
+            if (field.getAnnotation(DynamoDbPartitionKey.class) != null) {
                 hashKeyPropertyName = getPropertyNameForField(field);
             }
-            if (field.getAnnotation(DynamoDBRangeKey.class) != null) {
+            if (field.getAnnotation(DynamoDbSortKey.class) != null) {
                 hasRangeKey = true;
             }
-            DynamoDBIndexRangeKey dynamoDBRangeKeyAnnotation = field.getAnnotation(DynamoDBIndexRangeKey.class);
-            DynamoDBIndexHashKey dynamoDBHashKeyAnnotation = field.getAnnotation(DynamoDBIndexHashKey.class);
+			DynamoDbSecondarySortKey dynamoDBRangeKeyAnnotation = field.getAnnotation(DynamoDbSecondarySortKey.class);
+			DynamoDbSecondaryPartitionKey dynamoDBHashKeyAnnotation = field.getAnnotation(DynamoDbSecondaryPartitionKey.class);
 
             if (dynamoDBRangeKeyAnnotation != null) {
                 addGlobalSecondaryIndexNames(field, dynamoDBRangeKeyAnnotation);
@@ -209,29 +207,9 @@ public class DynamoDBEntityMetadataSupport<T, ID> implements DynamoDBHashKeyExtr
 	public String getOverriddenAttributeName(Method method) {
 
 		if (method != null) {
-			if (method.getAnnotation(DynamoDBAttribute.class) != null
-					&& StringUtils.hasText(method.getAnnotation(DynamoDBAttribute.class).attributeName())) {
-				return method.getAnnotation(DynamoDBAttribute.class).attributeName();
-			}
-			if (method.getAnnotation(DynamoDBHashKey.class) != null
-					&& StringUtils.hasText(method.getAnnotation(DynamoDBHashKey.class).attributeName())) {
-				return method.getAnnotation(DynamoDBHashKey.class).attributeName();
-			}
-			if (method.getAnnotation(DynamoDBRangeKey.class) != null
-					&& StringUtils.hasText(method.getAnnotation(DynamoDBRangeKey.class).attributeName())) {
-				return method.getAnnotation(DynamoDBRangeKey.class).attributeName();
-			}
-			if (method.getAnnotation(DynamoDBIndexRangeKey.class) != null
-					&& StringUtils.hasText(method.getAnnotation(DynamoDBIndexRangeKey.class).attributeName())) {
-				return method.getAnnotation(DynamoDBIndexRangeKey.class).attributeName();
-			}
-			if (method.getAnnotation(DynamoDBIndexHashKey.class) != null
-					&& StringUtils.hasText(method.getAnnotation(DynamoDBIndexHashKey.class).attributeName())) {
-				return method.getAnnotation(DynamoDBIndexHashKey.class).attributeName();
-			}
-			if (method.getAnnotation(DynamoDBVersionAttribute.class) != null
-					&& StringUtils.hasText(method.getAnnotation(DynamoDBVersionAttribute.class).attributeName())) {
-				return method.getAnnotation(DynamoDBVersionAttribute.class).attributeName();
+			if (method.getAnnotation(DynamoDbAttribute.class) != null
+					&& StringUtils.hasText(method.getAnnotation(DynamoDbAttribute.class).value())) {
+				return method.getAnnotation(DynamoDbAttribute.class).value();
 			}
 		}
 		return null;
@@ -243,114 +221,42 @@ public class DynamoDBEntityMetadataSupport<T, ID> implements DynamoDBHashKeyExtr
 
 		Method method = findMethod(propertyName);
 		if (method != null) {
-			if (method.getAnnotation(DynamoDBAttribute.class) != null
-					&& StringUtils.hasText(method.getAnnotation(DynamoDBAttribute.class).attributeName())) {
-				return Optional.of(method.getAnnotation(DynamoDBAttribute.class).attributeName());
-			}
-			if (method.getAnnotation(DynamoDBHashKey.class) != null
-					&& StringUtils.hasText(method.getAnnotation(DynamoDBHashKey.class).attributeName())) {
-				return Optional.of(method.getAnnotation(DynamoDBHashKey.class).attributeName());
-			}
-			if (method.getAnnotation(DynamoDBRangeKey.class) != null
-					&& StringUtils.hasText(method.getAnnotation(DynamoDBRangeKey.class).attributeName())) {
-				return Optional.of(method.getAnnotation(DynamoDBRangeKey.class).attributeName());
-			}
-			if (method.getAnnotation(DynamoDBIndexRangeKey.class) != null
-					&& StringUtils.hasText(method.getAnnotation(DynamoDBIndexRangeKey.class).attributeName())) {
-				return Optional.of(method.getAnnotation(DynamoDBIndexRangeKey.class).attributeName());
-			}
-			if (method.getAnnotation(DynamoDBIndexHashKey.class) != null
-					&& StringUtils.hasText(method.getAnnotation(DynamoDBIndexHashKey.class).attributeName())) {
-				return Optional.of(method.getAnnotation(DynamoDBIndexHashKey.class).attributeName());
-			}
-			if (method.getAnnotation(DynamoDBVersionAttribute.class) != null
-					&& StringUtils.hasText(method.getAnnotation(DynamoDBVersionAttribute.class).attributeName())) {
-				return Optional.of(method.getAnnotation(DynamoDBVersionAttribute.class).attributeName());
+			if (method.getAnnotation(DynamoDbAttribute.class) != null
+					&& StringUtils.hasText(method.getAnnotation(DynamoDbAttribute.class).value())) {
+				return Optional.of(method.getAnnotation(DynamoDbAttribute.class).value());
 			}
 		}
 
 		Field field = findField(propertyName);
 		if (field != null) {
-			if (field.getAnnotation(DynamoDBAttribute.class) != null
-					&& StringUtils.hasText(field.getAnnotation(DynamoDBAttribute.class).attributeName())) {
-				return Optional.of(field.getAnnotation(DynamoDBAttribute.class).attributeName());
-			}
-			if (field.getAnnotation(DynamoDBHashKey.class) != null
-					&& StringUtils.hasText(field.getAnnotation(DynamoDBHashKey.class).attributeName())) {
-				return Optional.of(field.getAnnotation(DynamoDBHashKey.class).attributeName());
-			}
-			if (field.getAnnotation(DynamoDBRangeKey.class) != null
-					&& StringUtils.hasText(field.getAnnotation(DynamoDBRangeKey.class).attributeName())) {
-				return Optional.of(field.getAnnotation(DynamoDBRangeKey.class).attributeName());
-			}
-			if (field.getAnnotation(DynamoDBIndexRangeKey.class) != null
-					&& StringUtils.hasText(field.getAnnotation(DynamoDBIndexRangeKey.class).attributeName())) {
-				return Optional.of(field.getAnnotation(DynamoDBIndexRangeKey.class).attributeName());
-			}
-			if (field.getAnnotation(DynamoDBIndexHashKey.class) != null
-					&& StringUtils.hasText(field.getAnnotation(DynamoDBIndexHashKey.class).attributeName())) {
-				return Optional.of(field.getAnnotation(DynamoDBIndexHashKey.class).attributeName());
-			}
-			if (field.getAnnotation(DynamoDBVersionAttribute.class) != null
-					&& StringUtils.hasText(field.getAnnotation(DynamoDBVersionAttribute.class).attributeName())) {
-				return Optional.of(field.getAnnotation(DynamoDBVersionAttribute.class).attributeName());
+			if (field.getAnnotation(DynamoDbAttribute.class) != null
+					&& StringUtils.hasText(field.getAnnotation(DynamoDbAttribute.class).value())) {
+				return Optional.of(field.getAnnotation(DynamoDbAttribute.class).value());
 			}
 		}
+
 		return Optional.empty();
-
 	}
 
 	@Override
-	@SuppressWarnings("deprecation")
-	public <V extends DynamoDBMarshaller<?>> V getMarshallerForProperty(final String propertyName) {
-		// TODO #28
-		DynamoDBMarshalling annotation = null;
+	public AttributeConverter<?> getTypeConverterForProperty(final String propertyName) {
+		DynamoDbConvertedBy annotation = null;
 
 		Method method = findMethod(propertyName);
 		if (method != null) {
-			annotation = method.getAnnotation(DynamoDBMarshalling.class);
+			annotation = method.getAnnotation(DynamoDbConvertedBy.class);
 		}
 
 		if (annotation == null) {
 			Field field = findField(propertyName);
 			if (field != null) {
-				annotation = field.getAnnotation(DynamoDBMarshalling.class);
+				annotation = field.getAnnotation(DynamoDbConvertedBy.class);
 			}
 		}
 
 		if (annotation != null) {
 			try {
-				@SuppressWarnings("unchecked")
-				Class<V> marshallerClazz = (Class<V>) annotation.marshallerClass();
-				return marshallerClazz.getDeclaredConstructor().newInstance();
-			} catch (InstantiationException | IllegalAccessException | NoSuchMethodException
-					| InvocationTargetException e) {
-				throw new RuntimeException(e);
-			}
-		}
-
-		return null;
-	}
-
-	@Override
-	public DynamoDBTypeConverter<?, ?> getTypeConverterForProperty(final String propertyName) {
-		DynamoDBTypeConverted annotation = null;
-
-		Method method = findMethod(propertyName);
-		if (method != null) {
-			annotation = method.getAnnotation(DynamoDBTypeConverted.class);
-		}
-
-		if (annotation == null) {
-			Field field = findField(propertyName);
-			if (field != null) {
-				annotation = field.getAnnotation(DynamoDBTypeConverted.class);
-			}
-		}
-
-		if (annotation != null) {
-			try {
-				return annotation.converter().getDeclaredConstructor().newInstance();
+				return annotation.value().getDeclaredConstructor().newInstance();
 			} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
 					| InvocationTargetException | NoSuchMethodException | SecurityException e) {
 				throw new RuntimeException(e);
@@ -384,89 +290,53 @@ public class DynamoDBEntityMetadataSupport<T, ID> implements DynamoDBHashKeyExtr
 		return hashKeyPropertyName;
 	}
 
-	private void addGlobalSecondaryIndexNames(Method method, DynamoDBIndexRangeKey dynamoDBIndexRangeKey) {
+	private void addGlobalSecondaryIndexNames(Method method, DynamoDbSecondarySortKey dynamoDBIndexRangeKey) {
 
-		if (dynamoDBIndexRangeKey.globalSecondaryIndexNames() != null
-				&& dynamoDBIndexRangeKey.globalSecondaryIndexNames().length > 0) {
+		if (dynamoDBIndexRangeKey.indexNames() != null
+				&& dynamoDBIndexRangeKey.indexNames().length > 0) {
 			String propertyName = getPropertyNameForAccessorMethod(method);
 
 			globalSecondaryIndexNames.put(propertyName,
-					method.getAnnotation(DynamoDBIndexRangeKey.class).globalSecondaryIndexNames());
+					method.getAnnotation(DynamoDbSecondarySortKey.class).indexNames());
 			globalIndexRangeKeyPropertyNames.add(propertyName);
 
 		}
-		if (dynamoDBIndexRangeKey.globalSecondaryIndexName() != null
-				&& dynamoDBIndexRangeKey.globalSecondaryIndexName().trim().length() > 0) {
-			String propertyName = getPropertyNameForAccessorMethod(method);
-			globalSecondaryIndexNames.put(propertyName,
-					new String[]{method.getAnnotation(DynamoDBIndexRangeKey.class).globalSecondaryIndexName()});
-			globalIndexRangeKeyPropertyNames.add(propertyName);
-
-		}
-
 	}
 
-	private void addGlobalSecondaryIndexNames(Field field, DynamoDBIndexRangeKey dynamoDBIndexRangeKey) {
+	private void addGlobalSecondaryIndexNames(Field field, DynamoDbSecondarySortKey dynamoDBIndexRangeKey) {
 
-		if (dynamoDBIndexRangeKey.globalSecondaryIndexNames() != null
-				&& dynamoDBIndexRangeKey.globalSecondaryIndexNames().length > 0) {
+		if (dynamoDBIndexRangeKey.indexNames() != null
+				&& dynamoDBIndexRangeKey.indexNames().length > 0) {
 			String propertyName = getPropertyNameForField(field);
 
 			globalSecondaryIndexNames.put(propertyName,
-					field.getAnnotation(DynamoDBIndexRangeKey.class).globalSecondaryIndexNames());
+					field.getAnnotation(DynamoDbSecondarySortKey.class).indexNames());
 			globalIndexRangeKeyPropertyNames.add(propertyName);
 
 		}
-		if (dynamoDBIndexRangeKey.globalSecondaryIndexName() != null
-				&& dynamoDBIndexRangeKey.globalSecondaryIndexName().trim().length() > 0) {
-			String propertyName = getPropertyNameForField(field);
-			globalSecondaryIndexNames.put(propertyName,
-					new String[]{field.getAnnotation(DynamoDBIndexRangeKey.class).globalSecondaryIndexName()});
-			globalIndexRangeKeyPropertyNames.add(propertyName);
-
-		}
-
 	}
 
-	private void addGlobalSecondaryIndexNames(Method method, DynamoDBIndexHashKey dynamoDBIndexHashKey) {
+	private void addGlobalSecondaryIndexNames(Method method, DynamoDbSecondaryPartitionKey dynamoDBIndexHashKey) {
 
-		if (dynamoDBIndexHashKey.globalSecondaryIndexNames() != null
-				&& dynamoDBIndexHashKey.globalSecondaryIndexNames().length > 0) {
+		if (dynamoDBIndexHashKey.indexNames() != null
+				&& dynamoDBIndexHashKey.indexNames().length > 0) {
 			String propertyName = getPropertyNameForAccessorMethod(method);
 
 			globalSecondaryIndexNames.put(propertyName,
-					method.getAnnotation(DynamoDBIndexHashKey.class).globalSecondaryIndexNames());
-			globalIndexHashKeyPropertyNames.add(propertyName);
-
-		}
-		if (dynamoDBIndexHashKey.globalSecondaryIndexName() != null
-				&& dynamoDBIndexHashKey.globalSecondaryIndexName().trim().length() > 0) {
-			String propertyName = getPropertyNameForAccessorMethod(method);
-
-			globalSecondaryIndexNames.put(propertyName,
-					new String[]{method.getAnnotation(DynamoDBIndexHashKey.class).globalSecondaryIndexName()});
+					method.getAnnotation(DynamoDbSecondaryPartitionKey.class).indexNames());
 			globalIndexHashKeyPropertyNames.add(propertyName);
 
 		}
 	}
 
-	private void addGlobalSecondaryIndexNames(Field field, DynamoDBIndexHashKey dynamoDBIndexHashKey) {
+	private void addGlobalSecondaryIndexNames(Field field, DynamoDbSecondaryPartitionKey dynamoDBIndexHashKey) {
 
-		if (dynamoDBIndexHashKey.globalSecondaryIndexNames() != null
-				&& dynamoDBIndexHashKey.globalSecondaryIndexNames().length > 0) {
+		if (dynamoDBIndexHashKey.indexNames() != null
+				&& dynamoDBIndexHashKey.indexNames().length > 0) {
 			String propertyName = getPropertyNameForField(field);
 
 			globalSecondaryIndexNames.put(propertyName,
-					field.getAnnotation(DynamoDBIndexHashKey.class).globalSecondaryIndexNames());
-			globalIndexHashKeyPropertyNames.add(propertyName);
-
-		}
-		if (dynamoDBIndexHashKey.globalSecondaryIndexName() != null
-				&& dynamoDBIndexHashKey.globalSecondaryIndexName().trim().length() > 0) {
-			String propertyName = getPropertyNameForField(field);
-
-			globalSecondaryIndexNames.put(propertyName,
-					new String[]{field.getAnnotation(DynamoDBIndexHashKey.class).globalSecondaryIndexName()});
+					field.getAnnotation(DynamoDbSecondaryPartitionKey.class).indexNames());
 			globalIndexHashKeyPropertyNames.add(propertyName);
 
 		}

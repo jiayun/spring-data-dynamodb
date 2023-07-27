@@ -15,20 +15,19 @@
  */
 package org.socialsignin.spring.data.dynamodb.domain.sample;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBHashKey;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBIndexHashKey;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBRangeKey;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTable;
+import jakarta.persistence.Table;
 import org.springframework.data.annotation.Id;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.*;
 
-@DynamoDBTable(tableName = "customerhistory")
+@DynamoDbBean
+@Table(name = "customerhistory")
 public class CustomerHistory {
 	@Id
 	private CustomerHistoryId id;
 
 	private String tag;
 
-	@DynamoDBIndexHashKey(globalSecondaryIndexName = "idx_global_tag")
+	@DynamoDbSecondaryPartitionKey(indexNames = {"idx_global_tag"})
 	public String getTag() {
 		return tag;
 	}
@@ -37,7 +36,8 @@ public class CustomerHistory {
 		this.tag = tag;
 	}
 
-	@DynamoDBHashKey(attributeName = "customerId")
+	@DynamoDbPartitionKey
+	@DynamoDbAttribute("customerId")
 	public String getId() {
 		return id != null ? id.getCustomerId() : null;
 	}
@@ -49,7 +49,8 @@ public class CustomerHistory {
 		this.id.setCustomerId(customerId);
 	}
 
-	@DynamoDBRangeKey(attributeName = "createDt")
+	@DynamoDbSortKey
+	@DynamoDbAttribute("createDt")
 	public String getCreateDt() {
 		return id != null ? id.getCreateDt() : null;
 	}

@@ -15,16 +15,16 @@
  */
 package org.socialsignin.spring.data.dynamodb.domain.sample;
 
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
-import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
-import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
+import jakarta.persistence.Table;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
+import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -44,13 +44,13 @@ public class HashRangeKeyIT {
 	private PlaylistRepository playlistRepository;
 
 	@Autowired
-	private AmazonDynamoDB ddb;
+	private DynamoDbEnhancedClient ddb;
 
 	@BeforeEach
 	public void setUp() {
-		CreateTableRequest ctr = new DynamoDBMapper(ddb).generateCreateTableRequest(Playlist.class);
-		ctr.withProvisionedThroughput(new ProvisionedThroughput(10L, 10L));
-		ddb.createTable(ctr);
+		Table t = Playlist.class.getAnnotation(Table.class);
+		DynamoDbTable<Playlist> table = ddb.table(t.name(), TableSchema.fromBean(Playlist.class));
+		table.createTable(r -> r.provisionedThroughput(p -> p.readCapacityUnits(10L).writeCapacityUnits(10L)));
 	}
 
 	@Test

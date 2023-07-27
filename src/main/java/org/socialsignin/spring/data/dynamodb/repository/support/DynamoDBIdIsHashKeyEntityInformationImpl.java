@@ -15,10 +15,10 @@
  */
 package org.socialsignin.spring.data.dynamodb.repository.support;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBHashKey;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMarshaller;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTypeConverter;
 import org.springframework.util.Assert;
+import software.amazon.awssdk.enhanced.dynamodb.AttributeConverter;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 
 import java.util.Map;
 import java.util.Optional;
@@ -51,7 +51,7 @@ public class DynamoDBIdIsHashKeyEntityInformationImpl<T, ID> extends FieldAndGet
 
 	public DynamoDBIdIsHashKeyEntityInformationImpl(Class<T> domainClass,
 			DynamoDBHashKeyExtractingEntityMetadata<T> metadata) {
-		super(domainClass, DynamoDBHashKey.class);
+		super(domainClass, DynamoDbPartitionKey.class);
 		this.metadata = metadata;
 		this.hashKeyExtractor = new HashKeyIsIdHashKeyExtractor<ID>(getIdType());
 	}
@@ -91,14 +91,8 @@ public class DynamoDBIdIsHashKeyEntityInformationImpl<T, ID> extends FieldAndGet
 		return false;
 	}
 
-	@SuppressWarnings("deprecation")
 	@Override
-	public <V extends DynamoDBMarshaller<?>> V getMarshallerForProperty(String propertyName) {
-		return metadata.getMarshallerForProperty(propertyName);
-	}
-
-	@Override
-	public DynamoDBTypeConverter<?, ?> getTypeConverterForProperty(String propertyName) {
+	public AttributeConverter<?> getTypeConverterForProperty(String propertyName) {
 		return metadata.getTypeConverterForProperty(propertyName);
 	}
 
@@ -110,6 +104,11 @@ public class DynamoDBIdIsHashKeyEntityInformationImpl<T, ID> extends FieldAndGet
 	@Override
 	public String getDynamoDBTableName() {
 		return metadata.getDynamoDBTableName();
+	}
+
+	@Override
+	public DynamoDbTable<T> getTable() {
+		return metadata.getTable();
 	}
 
 	@Override

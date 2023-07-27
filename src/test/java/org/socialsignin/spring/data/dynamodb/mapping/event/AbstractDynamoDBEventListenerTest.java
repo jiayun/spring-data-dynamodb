@@ -15,8 +15,6 @@
  */
 package org.socialsignin.spring.data.dynamodb.mapping.event;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.PaginatedQueryList;
-import com.amazonaws.services.dynamodbv2.datamodeling.PaginatedScanList;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,6 +22,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.socialsignin.spring.data.dynamodb.domain.sample.User;
+import software.amazon.awssdk.enhanced.dynamodb.model.PageIterable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,9 +36,9 @@ public class AbstractDynamoDBEventListenerTest {
 
 	private User sampleEntity = new User();
 	@Mock
-	private PaginatedQueryList<User> sampleQueryList;
+	private PageIterable<User> sampleQueryList;
 	@Mock
-	private PaginatedScanList<User> sampleScanList;
+	private PageIterable<User> sampleScanList;
 
 	@Mock
 	private DynamoDBMappingEvent<User> brokenEvent;
@@ -53,8 +52,8 @@ public class AbstractDynamoDBEventListenerTest {
 
 		List<User> queryList = new ArrayList<>();
 		queryList.add(sampleEntity);
-		lenient().when(sampleQueryList.stream()).thenReturn(queryList.stream());
-		lenient().when(sampleScanList.stream()).thenReturn(queryList.stream());
+		lenient().when(sampleQueryList.items().stream()).thenReturn(queryList.stream());
+		lenient().when(sampleScanList.items().stream()).thenReturn(queryList.stream());
 	}
 
 	@Test

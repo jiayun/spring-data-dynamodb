@@ -89,8 +89,8 @@ public class SimpleDynamoDBPagingAndSortingRepositoryUnitTest {
 		repoForEntityWithHashAndRangeKey = new SimpleDynamoDBPagingAndSortingRepository<>(
 				entityWithHashAndRangeKeyInformation, dynamoDBOperations, mockEnableScanPermissions);
 
-		lenient().when(dynamoDBOperations.load(User.class, 1l)).thenReturn(testUser);
-		lenient().when(dynamoDBOperations.load(Playlist.class, "michael", "playlist1")).thenReturn(testPlaylist);
+		lenient().when(dynamoDBOperations.load(User.class, 1l, null)).thenReturn(testUser);
+		lenient().when(dynamoDBOperations.load(Playlist.class, "michael", "playlist1", null)).thenReturn(testPlaylist);
 
 	}
 
@@ -105,7 +105,7 @@ public class SimpleDynamoDBPagingAndSortingRepositoryUnitTest {
 	@Test
 	public void findOneEntityWithOnlyHashKey() {
 		Optional<User> user = repoForEntityWithOnlyHashKey.findById(1l);
-		Mockito.verify(dynamoDBOperations).load(User.class, 1l);
+		Mockito.verify(dynamoDBOperations).load(User.class, 1l, null);
 		assertEquals(testUser, user.get());
 	}
 

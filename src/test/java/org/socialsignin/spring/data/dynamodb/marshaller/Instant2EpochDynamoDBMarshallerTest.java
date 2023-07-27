@@ -22,43 +22,41 @@ import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class Instant2EpocheDynamoDBMarshallerTest {
+public class Instant2EpochDynamoDBMarshallerTest {
 
-	private Instant2EpocheDynamoDBMarshaller underTest;
+	private Instant2EpochDynamoDBMarshaller underTest;
 
 	@BeforeEach
 	public void setUp() {
-		underTest = new Instant2EpocheDynamoDBMarshaller();
+		underTest = new Instant2EpochDynamoDBMarshaller();
 	}
 
 	@Test
 	public void testNullMarshall() {
-		String actual = underTest.marshall(null);
+		String actual = underTest.toString(null);
 
 		assertNull(actual);
 	}
 
 	@Test
 	public void testMarshall() {
-		assertEquals("0", underTest.marshall(Instant.ofEpochMilli(0)));
-		assertEquals("0", underTest.convert(Instant.ofEpochMilli(0)));
+		assertEquals("0", underTest.toString(Instant.ofEpochMilli(0)));
 	}
 
 	@Test
 	public void testUnmarshallNull() {
-		Instant actual = underTest.unmarshall(Instant.class, null);
+		Instant actual = underTest.fromString(null);
 
 		assertNull(actual);
 	}
 
 	@Test
 	public void testUnmarshall() {
-		assertEquals(Instant.ofEpochMilli(0), underTest.unmarshall(Instant.class, "0"));
-		assertEquals(Instant.ofEpochMilli(0), underTest.unconvert("0"));
+		assertEquals(Instant.ofEpochMilli(0), underTest.fromString("0"));
 	}
 
 	@Test
 	public void testUnmarshallGarbage() {
-		assertThrows(NumberFormatException.class, () -> underTest.unmarshall(Instant.class, "something"));
+		assertThrows(NumberFormatException.class, () -> underTest.fromString("something"));
 	}
 }

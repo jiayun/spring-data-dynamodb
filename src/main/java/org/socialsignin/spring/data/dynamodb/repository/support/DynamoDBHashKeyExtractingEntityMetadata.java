@@ -15,9 +15,9 @@
  */
 package org.socialsignin.spring.data.dynamodb.repository.support;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMarshaller;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTypeConverter;
 import org.springframework.data.repository.core.EntityMetadata;
+import software.amazon.awssdk.enhanced.dynamodb.AttributeConverter;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 
 import java.util.Map;
 import java.util.Optional;
@@ -35,10 +35,9 @@ public interface DynamoDBHashKeyExtractingEntityMetadata<T> extends EntityMetada
 
 	Optional<String> getOverriddenAttributeName(String propertyName);
 
-	@SuppressWarnings("deprecation")
-	<V extends DynamoDBMarshaller<?>> V getMarshallerForProperty(String propertyName);
+	AttributeConverter<?> getTypeConverterForProperty(String propertyName);
 
-	DynamoDBTypeConverter<?, ?> getTypeConverterForProperty(String propertyName);
+	DynamoDbTable<T> getTable();
 
 	boolean isHashKeyProperty(String propertyName);
 

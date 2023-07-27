@@ -15,16 +15,10 @@
  */
 package org.socialsignin.spring.data.dynamodb.utils;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
 import org.junit.jupiter.api.Test;
 import org.socialsignin.spring.data.dynamodb.exception.BatchWriteException;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class ExceptionHandlerTest {
 
@@ -33,27 +27,14 @@ public class ExceptionHandlerTest {
 
 	@Test
 	public void testEmpty() {
-		underTest.repackageToException(Collections.emptyList(), BatchWriteException.class);
-
-		assertTrue(true);
+		assertDoesNotThrow(() -> underTest.repackageToException(BatchWriteException.class));
 	}
 
 	@Test
 	public void testSimple() {
-		List<DynamoDBMapper.FailedBatch> failedBatches = new ArrayList<>();
-		DynamoDBMapper.FailedBatch fb1 = new DynamoDBMapper.FailedBatch();
-		fb1.setException(new Exception("Test Exception"));
-		failedBatches.add(fb1);
-		DynamoDBMapper.FailedBatch fb2 = new DynamoDBMapper.FailedBatch();
-		fb2.setException(new Exception("Followup Exception"));
-		failedBatches.add(fb2);
-
-		BatchWriteException actual = underTest.repackageToException(failedBatches, BatchWriteException.class);
+		BatchWriteException actual = underTest.repackageToException(BatchWriteException.class);
 
 		assertEquals("Processing of entities failed!",
 				actual.getMessage());
-
-		assertEquals(1, actual.getSuppressed().length);
-		assertEquals("Followup Exception", actual.getSuppressed()[0].getMessage());
 	}
 }

@@ -15,9 +15,6 @@
  */
 package org.socialsignin.spring.data.dynamodb.repository.cdi;
 
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapperConfig;
 import jakarta.enterprise.context.spi.CreationalContext;
 import jakarta.enterprise.inject.spi.Bean;
 import jakarta.enterprise.inject.spi.BeanManager;
@@ -26,6 +23,8 @@ import org.socialsignin.spring.data.dynamodb.core.DynamoDBTemplate;
 import org.socialsignin.spring.data.dynamodb.repository.support.DynamoDBRepositoryFactory;
 import org.springframework.data.repository.cdi.CdiRepositoryBean;
 import org.springframework.util.Assert;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 import java.lang.annotation.Annotation;
 import java.util.Set;
@@ -39,13 +38,11 @@ import java.util.Set;
  *            The type of the repository.
  */
 class DynamoDBRepositoryBean<T> extends CdiRepositoryBean<T> {
-    private final Bean<AmazonDynamoDB> amazonDynamoDBBean;
-
-    private final Bean<DynamoDBMapperConfig> dynamoDBMapperConfigBean;
+    private final Bean<DynamoDbClient> amazonDynamoDBBean;
 
     private final Bean<DynamoDBOperations> dynamoDBOperationsBean;
 
-    private final Bean<DynamoDBMapper> dynamoDBMapperBean;
+    private final Bean<DynamoDbEnhancedClient> dynamoDBMapperBean;
 
     /**
      * Constructs a {@link DynamoDBRepositoryBean}.
@@ -61,9 +58,9 @@ class DynamoDBRepositoryBean<T> extends CdiRepositoryBean<T> {
      * @param repositoryType
      *            must not be {@literal null}.
      */
-    DynamoDBRepositoryBean(BeanManager beanManager, Bean<AmazonDynamoDB> amazonDynamoDBBean,
-                           Bean<DynamoDBMapperConfig> dynamoDBMapperConfigBean, Bean<DynamoDBOperations> dynamoDBOperationsBean,
-                           Bean<DynamoDBMapper> dynamoDBMapperBean, Set<Annotation> qualifiers, Class<T> repositoryType) {
+    DynamoDBRepositoryBean(BeanManager beanManager, Bean<DynamoDbClient> amazonDynamoDBBean,
+                           Bean<DynamoDBOperations> dynamoDBOperationsBean,
+                           Bean<DynamoDbEnhancedClient> dynamoDBMapperBean, Set<Annotation> qualifiers, Class<T> repositoryType) {
 
         super(qualifiers, repositoryType, beanManager);
         if (dynamoDBOperationsBean == null) {
@@ -71,12 +68,9 @@ class DynamoDBRepositoryBean<T> extends CdiRepositoryBean<T> {
         } else {
             Assert.isNull(amazonDynamoDBBean,
                     "Cannot specify both amazonDynamoDB bean and dynamoDBOperationsBean in repository configuration");
-            Assert.isNull(dynamoDBMapperConfigBean,
-                    "Cannot specify both dynamoDBMapperConfigBean bean and dynamoDBOperationsBean in repository configuration");
 
         }
         this.amazonDynamoDBBean = amazonDynamoDBBean;
-        this.dynamoDBMapperConfigBean = dynamoDBMapperConfigBean;
         this.dynamoDBOperationsBean = dynamoDBOperationsBean;
         this.dynamoDBMapperBean = dynamoDBMapperBean;
     }
@@ -85,29 +79,21 @@ class DynamoDBRepositoryBean<T> extends CdiRepositoryBean<T> {
     protected T create(CreationalContext<T> creationalContext, Class<T> repositoryType) {
 
         // Get an instance from the associated AmazonDynamoDB bean.
-        AmazonDynamoDB amazonDynamoDB = getDependencyInstance(amazonDynamoDBBean, AmazonDynamoDB.class);
+        DynamoDbClient amazonDynamoDB = getDependencyInstance(amazonDynamoDBBean, DynamoDbClient.class);
 
-        // Get an instance from the associated optional AmazonDynamoDB bean.
-        DynamoDBMapperConfig dynamoDBMapperConfig = dynamoDBMapperConfigBean == null
+        DynamoDbEnhancedClient dynamoDBMapper = dynamoDBMapperBean == null
                 ? null
-                : getDependencyInstance(dynamoDBMapperConfigBean, DynamoDBMapperConfig.class);
-
-        DynamoDBMapper dynamoDBMapper = dynamoDBMapperBean == null
-                ? null
-                : getDependencyInstance(dynamoDBMapperBean, DynamoDBMapper.class);
+                : getDependencyInstance(dynamoDBMapperBean, DynamoDbEnhancedClient.class);
 
         DynamoDBOperations dynamoDBOperations = dynamoDBOperationsBean == null
                 ? null
                 : getDependencyInstance(dynamoDBOperationsBean, DynamoDBOperations.class);
 
-        if (dynamoDBMapperConfig == null) {
-            dynamoDBMapperConfig = DynamoDBMapperConfig.DEFAULT;
-        }
         if (dynamoDBMapper == null) {
-            dynamoDBMapper = new DynamoDBMapper(amazonDynamoDB, dynamoDBMapperConfig);
+            dynamoDBMapper = DynamoDbEnhancedClient.create();
         }
         if (dynamoDBOperations == null) {
-            dynamoDBOperations = new DynamoDBTemplate(amazonDynamoDB, dynamoDBMapper, dynamoDBMapperConfig);
+            dynamoDBOperations = new DynamoDBTemplate(amazonDynamoDB, dynamoDBMapper);
         }
 
         DynamoDBRepositoryFactory factory = new DynamoDBRepositoryFactory(dynamoDBOperations);

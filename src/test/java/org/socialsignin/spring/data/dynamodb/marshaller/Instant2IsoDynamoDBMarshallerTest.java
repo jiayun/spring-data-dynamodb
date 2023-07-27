@@ -33,32 +33,30 @@ public class Instant2IsoDynamoDBMarshallerTest {
 
 	@Test
 	public void testNullMarshall() {
-		String actual = underTest.marshall(null);
+		String actual = underTest.toString(null);
 
 		assertNull(actual);
 	}
 
 	@Test
 	public void testMarshall() {
-		assertEquals("1970-01-01T00:00:00.000Z", underTest.marshall(Instant.ofEpochMilli(0)));
-		assertEquals("1970-01-01T00:00:00.000Z", underTest.convert(Instant.ofEpochMilli(0)));
+		assertEquals("1970-01-01T00:00:00.000Z", underTest.toString(Instant.ofEpochMilli(0)));
 	}
 
 	@Test
 	public void testUnmarshallNull() {
-		Instant actual = underTest.unmarshall(Instant.class, null);
+		Instant actual = underTest.fromString(null);
 
 		assertNull(actual);
 	}
 
 	@Test
 	public void testUnmarshall() {
-		assertEquals(Instant.ofEpochMilli(0), underTest.unmarshall(Instant.class, "1970-01-01T00:00:00.000Z"));
-		assertEquals(Instant.ofEpochMilli(0), underTest.unconvert("1970-01-01T00:00:00.000Z"));
+		assertEquals(Instant.ofEpochMilli(0), underTest.fromString("1970-01-01T00:00:00.000Z"));
 	}
 
 	@Test
 	public void testUnmarshallGarbage() {
-		assertThrows(RuntimeException.class, () -> underTest.unmarshall(Instant.class, "something"));
+		assertThrows(RuntimeException.class, () -> underTest.fromString("something"));
 	}
 }

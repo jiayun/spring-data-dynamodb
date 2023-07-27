@@ -15,7 +15,7 @@
  */
 package org.socialsignin.spring.data.dynamodb.repository.query;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
+import jakarta.persistence.Table;
 import org.socialsignin.spring.data.dynamodb.core.DynamoDBOperations;
 import org.socialsignin.spring.data.dynamodb.domain.UnpagedPageImpl;
 import org.socialsignin.spring.data.dynamodb.exception.BatchDeleteException;
@@ -30,6 +30,8 @@ import org.springframework.data.repository.query.ParameterAccessor;
 import org.springframework.data.repository.query.Parameters;
 import org.springframework.data.repository.query.ParametersParameterAccessor;
 import org.springframework.data.repository.query.RepositoryQuery;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
+import software.amazon.awssdk.enhanced.dynamodb.model.BatchWriteResult;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -261,12 +263,25 @@ public abstract class AbstractDynamoDBQuery<T, ID> implements RepositoryQuery, E
 		@Override
 		public Object execute(AbstractDynamoDBQuery<T, ID> dynamoDBQuery, Object[] values) throws BatchDeleteException {
 			List<T> entities = dynamoDBQuery.doCreateQueryWithPermissions(values).getResultList();
-			List<DynamoDBMapper.FailedBatch> failedBatches = dynamoDBOperations.batchDelete(entities);
-			if (failedBatches.isEmpty()) {
-				return entities;
-			} else {
-				throw repackageToException(failedBatches, BatchDeleteException.class);
+
+			Class<?> entityClass = values[0].getClass();
+			Table table = entityClass.getAnnotation(Table.class);
+			// TODO: problem?
+			DynamoDbTable<T> dynamoDbTable = (DynamoDbTable<T>) dynamoDBOperations.getDynamoDbTable(entityClass, table.name());
+
+			BatchWriteResult failedBatches = dynamoDBOperations.batchDelete(entities, dynamoDbTable);
+
+			// TODO
+			if (values != null && values.length > 0) {
+
+				if (failedBatches.unprocessedDeleteItemsForTable(dynamoDbTable).isEmpty()) {
+					return entities;
+				} else {
+					throw repackageToException(BatchDeleteException.class);
+				}
 			}
+
+			return entities;
 		}
 	}
 

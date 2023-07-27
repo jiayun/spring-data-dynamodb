@@ -22,44 +22,41 @@ import java.util.Date;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class Date2EpocheDynamoDBMarshallerTest {
+public class Date2EpochDynamoDBMarshallerTest {
 
-	private Date2EpocheDynamoDBMarshaller underTest;
+	private Date2EpochDynamoDBMarshaller underTest;
 
 	@BeforeEach
 	public void setUp() {
-		underTest = new Date2EpocheDynamoDBMarshaller();
+		underTest = new Date2EpochDynamoDBMarshaller();
 	}
 
 	@Test
 	public void testNullMarshall() {
-		String actual = underTest.marshall(null);
+		String actual = underTest.toString(null);
 
 		assertNull(actual);
 	}
 
 	@Test
 	public void testMarshall() {
-		assertEquals("0", underTest.marshall(new Date(0)));
-		assertEquals("0", underTest.convert(new Date(0)));
+		assertEquals("0", underTest.toString(new Date(0)));
 	}
 
 	@Test
 	public void testUnmarshallNull() {
-		Date actual = underTest.unmarshall(Date.class, null);
+		Date actual = underTest.fromString(null);
 
 		assertNull(actual);
 	}
 
 	@Test
 	public void testUnmarshall() {
-		assertEquals(new Date(0), underTest.unmarshall(Date.class, "0"));
-		assertEquals(new Date(0), underTest.unconvert("0"));;
-
+		assertEquals(new Date(0), underTest.fromString("0"));
 	}
 
 	@Test
 	public void testUnmarshallGarbage() {
-		assertThrows(NumberFormatException.class, () -> underTest.unmarshall(Date.class, "garbage"));
+		assertThrows(NumberFormatException.class, () -> underTest.fromString("garbage"));
 	}
 }

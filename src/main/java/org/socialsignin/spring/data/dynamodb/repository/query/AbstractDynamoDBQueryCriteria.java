@@ -15,16 +15,6 @@
  */
 package org.socialsignin.spring.data.dynamodb.repository.query;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapperFieldModel;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapperTableModel;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMarshaller;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBQueryExpression;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTypeConverter;
-import com.amazonaws.services.dynamodbv2.model.AttributeValue;
-import com.amazonaws.services.dynamodbv2.model.ComparisonOperator;
-import com.amazonaws.services.dynamodbv2.model.Condition;
-import com.amazonaws.services.dynamodbv2.model.QueryRequest;
-import com.amazonaws.services.dynamodbv2.model.Select;
 import org.socialsignin.spring.data.dynamodb.core.DynamoDBOperations;
 import org.socialsignin.spring.data.dynamodb.marshaller.Date2IsoDynamoDBMarshaller;
 import org.socialsignin.spring.data.dynamodb.marshaller.Instant2IsoDynamoDBMarshaller;
@@ -42,6 +32,12 @@ import org.springframework.util.ClassUtils;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
+import software.amazon.awssdk.enhanced.dynamodb.AttributeConverter;
+import software.amazon.awssdk.enhanced.dynamodb.Expression;
+import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
+import software.amazon.awssdk.enhanced.dynamodb.internal.converter.StringConverter;
+import software.amazon.awssdk.enhanced.dynamodb.model.QueryEnhancedRequest;
+import software.amazon.awssdk.services.dynamodb.model.*;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -55,6 +51,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * @author Michael Lavelle
@@ -65,7 +62,7 @@ public abstract class AbstractDynamoDBQueryCriteria<T, ID> implements DynamoDBQu
 	protected Class<T> clazz;
 	private final DynamoDBEntityInformation<T, ID> entityInformation;
 	private final Map<String, String> attributeNamesByPropertyName;
-	private final DynamoDBMapperTableModel<T> tableModel;
+	private final TableSchema<T> tableModel;
 	private final String hashKeyPropertyName;
 
 	protected MultiValueMap<String, Condition> attributeConditions;
@@ -85,14 +82,14 @@ public abstract class AbstractDynamoDBQueryCriteria<T, ID> implements DynamoDBQu
 
 	public abstract boolean isApplicableForLoad();
 
-	protected QueryRequest buildQueryRequest(String tableName, String theIndexName, String hashKeyAttributeName,
-			String rangeKeyAttributeName, String rangeKeyPropertyName, List<Condition> hashKeyConditions,
-			List<Condition> rangeKeyConditions) {
+	protected QueryRequest.Builder buildQueryRequest(String tableName, String theIndexName, String hashKeyAttributeName,
+											 String rangeKeyAttributeName, String rangeKeyPropertyName, List<Condition> hashKeyConditions,
+											 List<Condition> rangeKeyConditions) {
 
 		// TODO Set other query request properties based on config
-		QueryRequest queryRequest = new QueryRequest();
-		queryRequest.setTableName(tableName);
-		queryRequest.setIndexName(theIndexName);
+		QueryRequest.Builder queryRequest = QueryRequest.builder();
+		queryRequest.tableName(tableName);
+		queryRequest.indexName(theIndexName);
 
 		if (isApplicableForGlobalSecondaryIndex()) {
 			List<String> allowedSortProperties = new ArrayList<>();
@@ -133,97 +130,160 @@ public abstract class AbstractDynamoDBQueryCriteria<T, ID> implements DynamoDBQu
 				}
 			}
 
-			queryRequest.setKeyConditions(keyConditions);
+			queryRequest.keyConditions(keyConditions);
 			// Might be overwritten in the actual Query classes
 			if (projection.isPresent()) {
-				queryRequest.setSelect(Select.SPECIFIC_ATTRIBUTES);
-				queryRequest.setProjectionExpression(projection.get());
+				queryRequest.select(Select.SPECIFIC_ATTRIBUTES);
+				queryRequest.projectionExpression(projection.get());
 			} else {
-				queryRequest.setSelect(Select.ALL_PROJECTED_ATTRIBUTES);
+				queryRequest.select(Select.ALL_PROJECTED_ATTRIBUTES);
 			}
 
-			applySortIfSpecified(queryRequest, new ArrayList<>(new HashSet<>(allowedSortProperties)));
+			applySortIfSpecified(queryRequest, new ArrayList<>(new HashSet<>(allowedSortProperties)), keyConditions);
 		}
 
 		applyConsistentReads(queryRequest);
 
-		limit.ifPresent(queryRequest::setLimit);
+		limit.ifPresent(queryRequest::limit);
 
 		if(filterExpression.isPresent()) {
 			String filter = filterExpression.get();
 			if(StringUtils.hasText(filter)) {
-				queryRequest.setFilterExpression(filter);
+				queryRequest.filterExpression(filter);
 				if (expressionAttributeNames != null && expressionAttributeNames.length > 0) {
-					for (ExpressionAttribute attribute : expressionAttributeNames) {
-						if(StringUtils.hasText(attribute.key()))
-							queryRequest.addExpressionAttributeNamesEntry(attribute.key(), attribute.value());
-					}
+					queryRequest.expressionAttributeNames(Arrays.stream(expressionAttributeNames)
+							.collect(Collectors.toMap(ExpressionAttribute::key, ExpressionAttribute::value)));
 				}
 				if (expressionAttributeValues != null && expressionAttributeValues.length > 0) {
-					for (ExpressionAttribute value : expressionAttributeValues) {
-						if (StringUtils.hasText(value.key())) {
-							if (mappedExpressionValues.containsKey(value.parameterName())) {
-								queryRequest.addExpressionAttributeValuesEntry(value.key(), new AttributeValue(mappedExpressionValues.get(value.parameterName())));
-							} else {
-								queryRequest.addExpressionAttributeValuesEntry(value.key(), new AttributeValue(value.value()));
-							}
-						}
-					}
+					queryRequest.expressionAttributeValues(Arrays.stream(expressionAttributeValues)
+							.collect(Collectors.toMap(ExpressionAttribute::key, v -> {
+								if (mappedExpressionValues.containsKey(v.parameterName())) {
+									return AttributeValue.builder().s(mappedExpressionValues.get(v.parameterName())).build();
+								} else {
+									return AttributeValue.builder().s(v.value()).build();
+								}
+							})));
 				}
 			}
 		}
 		return queryRequest;
 	}
 
-	protected void applyConsistentReads(QueryRequest queryRequest) {
-		switch (consistentReads) {
-			case CONSISTENT:
-				queryRequest.setConsistentRead(true);
-				break;
-			case EVENTUAL:
-				queryRequest.setConsistentRead(false);
-				break;
-			default:
-				break;
-		}
-	}
+	protected QueryEnhancedRequest buildQueryEnhancedRequest(String hashKeyAttributeName,
+													 String rangeKeyAttributeName, String rangeKeyPropertyName, List<Condition> hashKeyConditions,
+													 List<Condition> rangeKeyConditions) {
 
-	protected void applyConsistentReads(DynamoDBQueryExpression<T> queryExpression) {
-		switch (consistentReads) {
-			case CONSISTENT:
-				queryExpression.setConsistentRead(true);
-				break;
-			case EVENTUAL:
-				queryExpression.setConsistentRead(false);
-				break;
-			default:
-				break;
-		}
-	}
-	protected void applySortIfSpecified(DynamoDBQueryExpression<T> queryExpression,
-			List<String> permittedPropertyNames) {
-		if (permittedPropertyNames.size() > 1) {
-			throw new UnsupportedOperationException("Can only sort by at most a single range or index range key");
+		// TODO Set other query request properties based on config
+		QueryEnhancedRequest.Builder queryRequest = QueryEnhancedRequest.builder();
 
-		}
+		if (isApplicableForGlobalSecondaryIndex()) {
+			List<String> allowedSortProperties = new ArrayList<>();
 
-		boolean sortAlreadySet = false;
-		for (Order order : sort) {
-			if (permittedPropertyNames.contains(order.getProperty())) {
-				if (sortAlreadySet) {
-					throw new UnsupportedOperationException("Sorting by multiple attributes not possible");
-
+			for (Entry<String, List<Condition>> singlePropertyCondition : propertyConditions.entrySet()) {
+				if (entityInformation.getGlobalSecondaryIndexNamesByPropertyName()
+						.containsKey(singlePropertyCondition.getKey())) {
+					allowedSortProperties.add(singlePropertyCondition.getKey());
 				}
-				queryExpression.setScanIndexForward(order.getDirection().equals(Direction.ASC));
-				sortAlreadySet = true;
-			} else {
-				throw new UnsupportedOperationException(
-						"Sorting only possible by " + permittedPropertyNames + " for the criteria specified");
+			}
+
+			HashMap<String, Condition> keyConditions = new HashMap<>();
+
+			if (hashKeyConditions != null && hashKeyConditions.size() > 0) {
+				for (Condition hashKeyCondition : hashKeyConditions) {
+					keyConditions.put(hashKeyAttributeName, hashKeyCondition);
+					allowedSortProperties.add(hashKeyPropertyName);
+				}
+			}
+			if (rangeKeyConditions != null && rangeKeyConditions.size() > 0) {
+				for (Condition rangeKeyCondition : rangeKeyConditions) {
+					keyConditions.put(rangeKeyAttributeName, rangeKeyCondition);
+					allowedSortProperties.add(rangeKeyPropertyName);
+				}
+			}
+
+			for (Entry<String, List<Condition>> singleAttributeConditions : attributeConditions.entrySet()) {
+				for (Condition condition : singleAttributeConditions.getValue()) {
+					keyConditions.put(singleAttributeConditions.getKey(), condition);
+				}
+			}
+
+			for (Order order : sort) {
+				final String sortProperty = order.getProperty();
+				if (entityInformation.isGlobalIndexRangeKeyProperty(sortProperty)) {
+					allowedSortProperties.add(sortProperty);
+				}
+			}
+
+			// TODO: Fix this
+//			queryRequest.queryConditional(QueryConditional.keyEqualTo(keyConditions));
+
+			// Might be overwritten in the actual Query classes
+			// TODO: Fix this
+//			if (projection.isPresent()) {
+//				queryRequest.select(Select.SPECIFIC_ATTRIBUTES);
+//				queryRequest.pro(projection.get());
+//			} else {
+//				queryRequest.(Select.ALL_PROJECTED_ATTRIBUTES);
+//			}
+
+			applySortIfSpecified(queryRequest, new ArrayList<>(new HashSet<>(allowedSortProperties)), keyConditions);
+		}
+
+		switch (consistentReads) {
+			case CONSISTENT:
+				queryRequest.consistentRead(true);
+				break;
+			case EVENTUAL:
+				queryRequest.consistentRead(false);
+				break;
+			default:
+				break;
+		}
+
+		limit.ifPresent(queryRequest::limit);
+
+		if(filterExpression.isPresent()) {
+			String filter = filterExpression.get();
+			if(StringUtils.hasText(filter)) {
+				Expression.Builder expression = Expression.builder().expression(filter);
+
+				if (expressionAttributeNames != null && expressionAttributeNames.length > 0) {
+					expression.expressionNames(Arrays.stream(expressionAttributeNames)
+							.collect(Collectors.toMap(ExpressionAttribute::key, ExpressionAttribute::value)));
+				}
+
+				if (expressionAttributeValues != null && expressionAttributeValues.length > 0) {
+					expression.expressionValues(Arrays.stream(expressionAttributeValues)
+							.collect(Collectors.toMap(ExpressionAttribute::key, v -> {
+								if (mappedExpressionValues.containsKey(v.parameterName())) {
+									return AttributeValue.builder().s(mappedExpressionValues.get(v.parameterName())).build();
+								} else {
+									return AttributeValue.builder().s(v.value()).build();
+								}
+							})));
+				}
+
+				queryRequest.filterExpression(expression.build());
 			}
 		}
+		return queryRequest.build();
 	}
 
-	protected void applySortIfSpecified(QueryRequest queryRequest, List<String> permittedPropertyNames) {
+	protected void applyConsistentReads(QueryRequest.Builder queryRequest) {
+		switch (consistentReads) {
+			case CONSISTENT:
+				queryRequest.consistentRead(true);
+				break;
+			case EVENTUAL:
+				queryRequest.consistentRead(false);
+				break;
+			default:
+				break;
+		}
+	}
+
+	protected void applySortIfSpecified(QueryRequest.Builder queryRequest, List<String> permittedPropertyNames,
+										Map<String, Condition> keyConditions) {
 		if (permittedPropertyNames.size() > 2) {
 			throw new UnsupportedOperationException("Can only sort by at most a single global hash and range key");
 		}
@@ -235,12 +295,39 @@ public abstract class AbstractDynamoDBQueryCriteria<T, ID> implements DynamoDBQu
 					throw new UnsupportedOperationException("Sorting by multiple attributes not possible");
 
 				}
-				if (queryRequest.getKeyConditions().size() > 1 && !hasIndexHashKeyEqualCondition()) {
+				if (keyConditions.size() > 1 && !hasIndexHashKeyEqualCondition()) {
 					throw new UnsupportedOperationException(
 							"Sorting for global index queries with criteria on both hash and range not possible");
 
 				}
-				queryRequest.setScanIndexForward(order.getDirection().equals(Direction.ASC));
+				queryRequest.scanIndexForward(order.getDirection().equals(Direction.ASC));
+				sortAlreadySet = true;
+			} else {
+				throw new UnsupportedOperationException("Sorting only possible by " + permittedPropertyNames
+						+ " for the criteria specified and not for " + order.getProperty());
+			}
+		}
+	}
+
+	protected void applySortIfSpecified(QueryEnhancedRequest.Builder queryRequest, List<String> permittedPropertyNames,
+										Map<String, Condition> keyConditions) {
+		if (permittedPropertyNames.size() > 2) {
+			throw new UnsupportedOperationException("Can only sort by at most a single global hash and range key");
+		}
+
+		boolean sortAlreadySet = false;
+		for (Order order : sort) {
+			if (permittedPropertyNames.contains(order.getProperty())) {
+				if (sortAlreadySet) {
+					throw new UnsupportedOperationException("Sorting by multiple attributes not possible");
+
+				}
+				if (keyConditions.size() > 1 && !hasIndexHashKeyEqualCondition()) {
+					throw new UnsupportedOperationException(
+							"Sorting for global index queries with criteria on both hash and range not possible");
+
+				}
+				queryRequest.scanIndexForward(order.getDirection().equals(Direction.ASC));
 				sortAlreadySet = true;
 			} else {
 				throw new UnsupportedOperationException("Sorting only possible by " + permittedPropertyNames
@@ -257,7 +344,7 @@ public abstract class AbstractDynamoDBQueryCriteria<T, ID> implements DynamoDBQu
 		for (Collection<Condition> conditions : attributeConditions.values()) {
 			for (Condition condition : conditions) {
 				if (!comparisonOperatorsPermittedForQuery
-						.contains(ComparisonOperator.fromValue(condition.getComparisonOperator()))) {
+						.contains(ComparisonOperator.fromValue(condition.comparisonOperatorAsString()))) {
 					return false;
 				}
 			}
@@ -281,7 +368,7 @@ public abstract class AbstractDynamoDBQueryCriteria<T, ID> implements DynamoDBQu
 	}
 
 	public AbstractDynamoDBQueryCriteria(DynamoDBEntityInformation<T, ID> dynamoDBEntityInformation,
-			final DynamoDBMapperTableModel<T> tableModel) {
+			final TableSchema<T> tableModel) {
 		this.clazz = dynamoDBEntityInformation.getJavaType();
 		this.attributeConditions = new LinkedMultiValueMap<>();
 		this.propertyConditions = new LinkedMultiValueMap<>();
@@ -391,7 +478,7 @@ public abstract class AbstractDynamoDBQueryCriteria<T, ID> implements DynamoDBQu
 		for (Map.Entry<String, List<Condition>> propertyConditionList : propertyConditions.entrySet()) {
 			if (entityInformation.isGlobalIndexHashKeyProperty(propertyConditionList.getKey())) {
 				for (Condition condition : propertyConditionList.getValue()) {
-					if (condition.getComparisonOperator().equals(ComparisonOperator.EQ.name())) {
+					if (condition.comparisonOperator().equals(ComparisonOperator.EQ.name())) {
 						hasIndexHashKeyEqualCondition = true;
 					}
 				}
@@ -535,42 +622,38 @@ public abstract class AbstractDynamoDBQueryCriteria<T, ID> implements DynamoDBQu
 	protected <V extends Object> Object getPropertyAttributeValue(final String propertyName, final V value) {
 		// TODO consider removing DynamoDBMarshaller code altogether as table model will
 		// handle accordingly
-		DynamoDBTypeConverter<Object, V> converter = (DynamoDBTypeConverter<Object, V>) entityInformation
+		AttributeConverter<V> converter = (AttributeConverter<V>) entityInformation
 				.getTypeConverterForProperty(propertyName);
 
 		if (converter != null) {
-			return converter.convert(value);
+			return converter.transformFrom(value);
 		}
 
-		DynamoDBMarshaller<V> marshaller = (DynamoDBMarshaller<V>) entityInformation
-				.getMarshallerForProperty(propertyName);
+		// TODO
+//		if (tableModel != null) { // purely here for testing as DynamoDBMapperTableModel cannot be mocked using
+//											// Mockito
 
-		if (marshaller != null) {
-			return marshaller.marshall(value);
-		} else if (tableModel != null) { // purely here for testing as DynamoDBMapperTableModel cannot be mocked using
-											// Mockito
+//			String attributeName = getAttributeName(propertyName);
 
-			String attributeName = getAttributeName(propertyName);
-
-			DynamoDBMapperFieldModel<T, Object> fieldModel = tableModel.field(attributeName);
-			if (fieldModel != null) {
-                if (fieldModel.attributeType() == DynamoDBMapperFieldModel.DynamoDBAttributeType.SS) {
-                    if(value instanceof Collection) {
-                        return fieldModel.convert(value);
-                    } else {
-                        return new AttributeValue(value.toString());
-                    }
-                }
-                return fieldModel.convert(value);
-            }
-		}
+//			DynamoDBMapperFieldModel<T, Object> fieldModel = tableModel.field(attributeName);
+//			if (fieldModel != null) {
+//                if (fieldModel.attributeType() == DynamoDBMapperFieldModel.DynamoDBAttributeType.SS) {
+//                    if(value instanceof Collection) {
+//                        return fieldModel.convert(value);
+//                    } else {
+//                        return new AttributeValue(value.toString());
+//                    }
+//                }
+//                return fieldModel.convert(value);
+//            }
+//		}
 
 		return value;
 	}
 
 	protected <V> Condition createNoValueCondition(String propertyName, ComparisonOperator comparisonOperator) {
 
-		Condition condition = new Condition().withComparisonOperator(comparisonOperator);
+		Condition condition = Condition.builder().comparisonOperator(comparisonOperator).build();
 
 		return condition;
 	}
@@ -589,11 +672,11 @@ public abstract class AbstractDynamoDBQueryCriteria<T, ID> implements DynamoDBQu
 
 	@SuppressWarnings("deprecation")
 	private List<String> getDateListAsStringList(List<Date> dateList) {
-		DynamoDBMarshaller<Date> marshaller = new Date2IsoDynamoDBMarshaller();
+		StringConverter<Date> marshaller = new Date2IsoDynamoDBMarshaller();
 		List<String> list = new ArrayList<String>();
 		for (Date date : dateList) {
 			if (date != null) {
-				list.add(marshaller.marshall(date));
+				list.add(marshaller.toString(date));
 			} else {
 				list.add(null);
 			}
@@ -603,11 +686,11 @@ public abstract class AbstractDynamoDBQueryCriteria<T, ID> implements DynamoDBQu
 
 	@SuppressWarnings("deprecation")
 	private List<String> getInstantListAsStringList(List<Instant> dateList) {
-		DynamoDBMarshaller<Instant> marshaller = new Instant2IsoDynamoDBMarshaller();
+		StringConverter<Instant> marshaller = new Instant2IsoDynamoDBMarshaller();
 		List<String> list = new ArrayList<>();
 		for (Instant date : dateList) {
 			if (date != null) {
-				list.add(marshaller.marshall(date));
+				list.add(marshaller.toString(date));
 			} else {
 				list.add(null);
 			}
@@ -647,58 +730,58 @@ public abstract class AbstractDynamoDBQueryCriteria<T, ID> implements DynamoDBQu
 
 	protected <P> List<AttributeValue> addAttributeValue(List<AttributeValue> attributeValueList,
 			@Nullable Object attributeValue, Class<P> propertyType, boolean expandCollectionValues) {
-		AttributeValue attributeValueObject = new AttributeValue();
+		AttributeValue.Builder attributeValueObject = AttributeValue.builder();
 
 		if (ClassUtils.isAssignable(String.class, propertyType)) {
 			List<String> attributeValueAsList = getAttributeValueAsList(attributeValue);
 			if (expandCollectionValues && attributeValueAsList != null) {
-				attributeValueObject.withSS(attributeValueAsList);
+				attributeValueObject.ss(attributeValueAsList);
 			} else {
-				attributeValueObject.withS((String) attributeValue);
+				attributeValueObject.s((String) attributeValue);
 			}
 		} else if (ClassUtils.isAssignable(Number.class, propertyType)) {
 
 			List<Number> attributeValueAsList = getAttributeValueAsList(attributeValue);
 			if (expandCollectionValues && attributeValueAsList != null) {
 				List<String> attributeValueAsStringList = getNumberListAsStringList(attributeValueAsList);
-				attributeValueObject.withNS(attributeValueAsStringList);
+				attributeValueObject.ns(attributeValueAsStringList);
 			} else {
-				attributeValueObject.withN(attributeValue.toString());
+				attributeValueObject.n(attributeValue.toString());
 			}
 		} else if (ClassUtils.isAssignable(Boolean.class, propertyType)) {
 			List<Boolean> attributeValueAsList = getAttributeValueAsList(attributeValue);
 			if (expandCollectionValues && attributeValueAsList != null) {
 				List<String> attributeValueAsStringList = getBooleanListAsStringList(attributeValueAsList);
-				attributeValueObject.withNS(attributeValueAsStringList);
+				attributeValueObject.ns(attributeValueAsStringList);
 			} else {
 				boolean boolValue = ((Boolean) attributeValue).booleanValue();
-				attributeValueObject.withN(boolValue ? "1" : "0");
+				attributeValueObject.n(boolValue ? "1" : "0");
 			}
 		} else if (ClassUtils.isAssignable(Date.class, propertyType)) {
 			List<Date> attributeValueAsList = getAttributeValueAsList(attributeValue);
 			if (expandCollectionValues && attributeValueAsList != null) {
 				List<String> attributeValueAsStringList = getDateListAsStringList(attributeValueAsList);
-				attributeValueObject.withSS(attributeValueAsStringList);
+				attributeValueObject.ss(attributeValueAsStringList);
 			} else {
 				Date date = (Date) attributeValue;
-				String marshalledDate = new Date2IsoDynamoDBMarshaller().marshall(date);
-				attributeValueObject.withS(marshalledDate);
+				String marshalledDate = new Date2IsoDynamoDBMarshaller().toString(date);
+				attributeValueObject.s(marshalledDate);
 			}
 		} else if (ClassUtils.isAssignable(Instant.class, propertyType)) {
 			List<Instant> attributeValueAsList = getAttributeValueAsList(attributeValue);
 			if (expandCollectionValues && attributeValueAsList != null) {
 				List<String> attributeValueAsStringList = getInstantListAsStringList(attributeValueAsList);
-				attributeValueObject.withSS(attributeValueAsStringList);
+				attributeValueObject.ss(attributeValueAsStringList);
 			} else {
 				Instant date = (Instant) attributeValue;
-				String marshalledDate = new Instant2IsoDynamoDBMarshaller().marshall(date);
-				attributeValueObject.withS(marshalledDate);
+				String marshalledDate = new Instant2IsoDynamoDBMarshaller().toString(date);
+				attributeValueObject.s(marshalledDate);
 			}
 		} else {
 			throw new RuntimeException("Cannot create condition for type:" + attributeValue.getClass()
 					+ " property conditions must be String,Number or Boolean, or have a DynamoDBMarshaller configured");
 		}
-		attributeValueList.add(attributeValueObject);
+		attributeValueList.add(attributeValueObject.build());
 
 		return attributeValueList;
 	}
@@ -721,7 +804,7 @@ public abstract class AbstractDynamoDBQueryCriteria<T, ID> implements DynamoDBQu
 			addAttributeValue(attributeValueList, attributeValue, targetPropertyType, true);
 		}
 
-		return new Condition().withComparisonOperator(comparisonOperator).withAttributeValueList(attributeValueList);
+		return Condition.builder().comparisonOperator(comparisonOperator).attributeValueList(attributeValueList).build();
 	}
 
 	protected Condition createCollectionCondition(String propertyName, ComparisonOperator comparisonOperator,
@@ -745,7 +828,7 @@ public abstract class AbstractDynamoDBQueryCriteria<T, ID> implements DynamoDBQu
 			}
 		}
 
-		return new Condition().withComparisonOperator(comparisonOperator).withAttributeValueList(attributeValueList);
+		return Condition.builder().comparisonOperator(comparisonOperator).attributeValueList(attributeValueList).build();
 
 	}
 

@@ -15,17 +15,19 @@
  */
 package org.socialsignin.spring.data.dynamodb.repository.support;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper.FailedBatch;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBScanExpression;
-import com.amazonaws.services.dynamodbv2.datamodeling.KeyPair;
 import org.socialsignin.spring.data.dynamodb.core.DynamoDBOperations;
 import org.socialsignin.spring.data.dynamodb.exception.BatchWriteException;
 import org.socialsignin.spring.data.dynamodb.repository.DynamoDBCrudRepository;
+import org.socialsignin.spring.data.dynamodb.utils.AttributeValueUtil;
 import org.socialsignin.spring.data.dynamodb.utils.ExceptionHandler;
 import org.socialsignin.spring.data.dynamodb.utils.SortHandler;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.lang.NonNull;
 import org.springframework.util.Assert;
+import software.amazon.awssdk.enhanced.dynamodb.Key;
+import software.amazon.awssdk.enhanced.dynamodb.model.BatchWriteResult;
+import software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest;
+import software.amazon.awssdk.services.dynamodb.model.ScanRequest;
 
 import java.util.Collections;
 import java.util.List;
@@ -77,9 +79,9 @@ public class SimpleDynamoDBCrudRepository<T, ID>
 		T result;
 		if (entityInformation.isRangeKeyAware()) {
 			result = dynamoDBOperations.load(domainType, entityInformation.getHashKey(id),
-					entityInformation.getRangeKey(id));
+					entityInformation.getRangeKey(id), entityInformation);
 		} else {
-			result = dynamoDBOperations.load(domainType, entityInformation.getHashKey(id));
+			result = dynamoDBOperations.load(domainType, entityInformation.getHashKey(id), entityInformation);
 		}
 
 		return Optional.ofNullable(result);
@@ -92,27 +94,26 @@ public class SimpleDynamoDBCrudRepository<T, ID>
 
 		// Works only with non-parallel streams!
 		AtomicInteger idx = new AtomicInteger();
-		List<KeyPair> keyPairs = StreamSupport.stream(ids.spliterator(), false).map(id -> {
+		List<Key> keyPairs = StreamSupport.stream(ids.spliterator(), false).map(id -> {
 
 			Assert.notNull(id, "The given id at position " + idx.getAndIncrement() + " must not be null!");
 
 			if (entityInformation.isRangeKeyAware()) {
-				return new KeyPair().withHashKey(entityInformation.getHashKey(id))
-						.withRangeKey(entityInformation.getRangeKey(id));
+				return Key.builder().partitionValue(AttributeValueUtil.toAttributeValue(entityInformation.getHashKey(id)))
+						.sortValue(AttributeValueUtil.toAttributeValue(entityInformation.getRangeKey(id))).build();
 			} else {
-				return new KeyPair().withHashKey(id);
+				return Key.builder().partitionValue(AttributeValueUtil.toAttributeValue(id)).build();
 			}
 		}).collect(Collectors.toList());
 
-		Map<Class<?>, List<KeyPair>> keyPairsMap = Collections.<Class<?>, List<KeyPair>>singletonMap(domainType,
+		Map<Class<?>, List<Key>> keyPairsMap = Collections.<Class<?>, List<Key>>singletonMap(domainType,
 				keyPairs);
-		return dynamoDBOperations.batchLoad(keyPairsMap);
+		return dynamoDBOperations.batchLoad(keyPairsMap, entityInformation);
 	}
 
 	@Override
 	public <S extends T> S save(S entity) {
-
-		dynamoDBOperations.save(entity);
+		dynamoDBOperations.save(entity, entityInformation);
 		return entity;
 	}
 
@@ -127,14 +128,14 @@ public class SimpleDynamoDBCrudRepository<T, ID>
 			throws BatchWriteException, IllegalArgumentException {
 
 		Assert.notNull(entities, "The given Iterable of entities not be null!");
-		List<FailedBatch> failedBatches = dynamoDBOperations.batchSave(entities);
+		BatchWriteResult failedBatches = dynamoDBOperations.batchSave(entities, entityInformation);
 
-		if (failedBatches.isEmpty()) {
+		if (failedBatches.unprocessedPutItemsForTable(entityInformation.getTable()).isEmpty()) {
 			// Happy path
 			return entities;
 		} else {
 			// Error handling:
-			throw repackageToException(failedBatches, BatchWriteException.class);
+			throw repackageToException(BatchWriteException.class);
 		}
 	}
 
@@ -153,18 +154,17 @@ public class SimpleDynamoDBCrudRepository<T, ID>
 	}
 
 	@Override
-	public List<T> findAll() {
-
+	public Iterable<T> findAll() {
 		assertScanEnabled(enableScanPermissions.isFindAllUnpaginatedScanEnabled(), "findAll");
-		DynamoDBScanExpression scanExpression = new DynamoDBScanExpression();
-		return dynamoDBOperations.scan(domainType, scanExpression);
+		ScanEnhancedRequest scanExpression = ScanEnhancedRequest.builder().build();
+		return dynamoDBOperations.scan(domainType, scanExpression, entityInformation).items();
 	}
 
 	@Override
 	public long count() {
 		assertScanEnabled(enableScanPermissions.isCountUnpaginatedScanEnabled(), "count");
-		final DynamoDBScanExpression scanExpression = new DynamoDBScanExpression();
-		return dynamoDBOperations.count(domainType, scanExpression);
+		final ScanRequest.Builder scanExpression = ScanRequest.builder();
+		return dynamoDBOperations.count(domainType, scanExpression, entityInformation);
 	}
 
 	@Override
@@ -175,7 +175,7 @@ public class SimpleDynamoDBCrudRepository<T, ID>
 		Optional<T> entity = findById(id);
 
 		if (entity.isPresent()) {
-			dynamoDBOperations.delete(entity.get());
+			dynamoDBOperations.delete(entity.get(), entityInformation);
 
 		} else {
 			throw new EmptyResultDataAccessException(String.format("No %s entity with id %s exists!", domainType, id),
@@ -186,7 +186,7 @@ public class SimpleDynamoDBCrudRepository<T, ID>
 	@Override
 	public void delete(T entity) {
 		Assert.notNull(entity, "The entity must not be null!");
-		dynamoDBOperations.delete(entity);
+		dynamoDBOperations.delete(entity, entityInformation);
 	}
 
 	@Override
@@ -198,14 +198,14 @@ public class SimpleDynamoDBCrudRepository<T, ID>
 	public void deleteAll(Iterable<? extends T> entities) {
 
 		Assert.notNull(entities, "The given Iterable of entities not be null!");
-		dynamoDBOperations.batchDelete(entities);
+		dynamoDBOperations.batchDelete(entities, entityInformation);
 	}
 
 	@Override
 	public void deleteAll() {
 
 		assertScanEnabled(enableScanPermissions.isDeleteAllUnpaginatedScanEnabled(), "deleteAll");
-		dynamoDBOperations.batchDelete(findAll());
+		dynamoDBOperations.batchDelete(findAll(), entityInformation);
 	}
 
 	@NonNull

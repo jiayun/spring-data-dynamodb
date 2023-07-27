@@ -20,7 +20,7 @@ import java.text.FieldPosition;
 import java.text.ParsePosition;
 import java.util.Date;
 
-public class Date2EpocheDynamoDBMarshaller extends DateDynamoDBMarshaller {
+public class Date2EpochDynamoDBMarshaller extends DateDynamoDBMarshaller {
 
 	private static final class EpcoheDateFormat extends DateFormat {
 		private static final long serialVersionUID = 2969564523817434535L;

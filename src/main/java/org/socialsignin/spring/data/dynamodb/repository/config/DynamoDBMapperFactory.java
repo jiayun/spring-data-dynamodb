@@ -19,25 +19,20 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.FactoryBean;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapperConfig;
-
-public class DynamoDBMapperFactory implements FactoryBean<DynamoDBMapper>, BeanFactoryAware {
+public class DynamoDBMapperFactory implements FactoryBean<DynamoDbEnhancedClient>, BeanFactoryAware {
 
 	private BeanFactory beanFactory;
     
 	@Override
-	public DynamoDBMapper getObject() throws Exception {
-		AmazonDynamoDB amazonDynamoDB = beanFactory.getBean(AmazonDynamoDB.class);
-		DynamoDBMapperConfig dynamoDBMapperConfig = beanFactory.getBean(DynamoDBMapperConfig.class);
-		return new DynamoDBMapper(amazonDynamoDB, dynamoDBMapperConfig);
+	public DynamoDbEnhancedClient getObject() throws Exception {
+		return DynamoDbEnhancedClient.create();
 	}
 
 	@Override
 	public Class<?> getObjectType() {
-		return DynamoDBMapper.class;
+		return DynamoDbEnhancedClient.class;
 	}
 
 	@Override

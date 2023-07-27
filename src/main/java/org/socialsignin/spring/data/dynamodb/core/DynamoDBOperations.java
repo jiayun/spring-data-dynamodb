@@ -15,14 +15,16 @@
  */
 package org.socialsignin.spring.data.dynamodb.core;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper.FailedBatch;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapperTableModel;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBQueryExpression;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBScanExpression;
-import com.amazonaws.services.dynamodbv2.datamodeling.KeyPair;
-import com.amazonaws.services.dynamodbv2.datamodeling.PaginatedQueryList;
-import com.amazonaws.services.dynamodbv2.datamodeling.PaginatedScanList;
-import com.amazonaws.services.dynamodbv2.model.QueryRequest;
+import org.socialsignin.spring.data.dynamodb.repository.support.DynamoDBEntityInformation;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
+import software.amazon.awssdk.enhanced.dynamodb.Key;
+import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
+import software.amazon.awssdk.enhanced.dynamodb.model.BatchWriteResult;
+import software.amazon.awssdk.enhanced.dynamodb.model.PageIterable;
+import software.amazon.awssdk.enhanced.dynamodb.model.QueryEnhancedRequest;
+import software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest;
+import software.amazon.awssdk.services.dynamodb.model.QueryRequest;
+import software.amazon.awssdk.services.dynamodb.model.ScanRequest;
 
 import java.util.List;
 import java.util.Map;
@@ -32,25 +34,26 @@ import java.util.Map;
  */
 public interface DynamoDBOperations {
 
-	<T> int count(Class<T> domainClass, DynamoDBQueryExpression<T> queryExpression);
-	<T> int count(Class<T> domainClass, DynamoDBScanExpression scanExpression);
-	<T> int count(Class<T> clazz, QueryRequest mutableQueryRequest);
+	<T> int count(Class<T> clazz, QueryRequest.Builder mutableQueryRequest);
 
-	<T> PaginatedQueryList<T> query(Class<T> clazz, QueryRequest queryRequest);
-	<T> PaginatedQueryList<T> query(Class<T> domainClass, DynamoDBQueryExpression<T> queryExpression);
-	<T> PaginatedScanList<T> scan(Class<T> domainClass, DynamoDBScanExpression scanExpression);
+	<T, ID> int count(Class<T> clazz, ScanRequest.Builder mutableScanRequest, DynamoDBEntityInformation<T, ID> entityInformation);
 
-	<T> T load(Class<T> domainClass, Object hashKey, Object rangeKey);
-	<T> T load(Class<T> domainClass, Object hashKey);
-	<T> List<T> batchLoad(Map<Class<?>, List<KeyPair>> itemsToGet);
+	<T, ID> PageIterable<T> query(Class<T> clazz, QueryEnhancedRequest queryRequest, DynamoDBEntityInformation<T, ID> entityInformation);
 
-	<T> T save(T entity);
-	List<FailedBatch> batchSave(Iterable<?> entities);
+	<T, ID> PageIterable<T> scan(Class<T> clazz, ScanEnhancedRequest scanRequest, DynamoDBEntityInformation<T, ID> entityInformation);
 
-	<T> T delete(T entity);
-	List<FailedBatch> batchDelete(Iterable<?> entities);
+	<T, ID> T load(Class<T> domainClass, Object hashKey, Object rangeKey, DynamoDBEntityInformation<T, ID> entityInformation);
+	<T, ID> T load(Class<T> domainClass, Object hashKey, DynamoDBEntityInformation<T, ID> entityInformation);
+	<T, ID> List<T> batchLoad(Map<Class<?>, List<Key>> itemsToGet, DynamoDBEntityInformation<T, ID> entityInformation);
 
-	<T> String getOverriddenTableName(Class<T> domainClass, String tableName);
+	<T, ID> T save(T entity, DynamoDBEntityInformation<T, ID> entityInformation);
+	<T, S, ID> BatchWriteResult batchSave(Iterable<S> entities, DynamoDBEntityInformation<T, ID> entityInformation);
+
+	<T, ID> T delete(T entity, DynamoDBEntityInformation<T, ID> entityInformation);
+	<T, S, ID> BatchWriteResult batchDelete(Iterable<S> entities, DynamoDBEntityInformation<T, ID> entityInformation);
+	<T> BatchWriteResult batchDelete(List<T> entities, DynamoDbTable<T> dynamoDbTable);
+
+	<T> DynamoDbTable<T> getDynamoDbTable(Class<T> domainClass, String tableName);
 
 	/**
 	 * Provides access to the DynamoDB mapper table model of the underlying domain
@@ -62,5 +65,6 @@ public interface DynamoDBOperations {
 	 *            A domain type
 	 * @return Corresponding DynamoDB table model
 	 */
-	<T> DynamoDBMapperTableModel<T> getTableModel(Class<T> domainClass);
+	<T> TableSchema<T> getTableModel(Class<T> domainClass);
+
 }

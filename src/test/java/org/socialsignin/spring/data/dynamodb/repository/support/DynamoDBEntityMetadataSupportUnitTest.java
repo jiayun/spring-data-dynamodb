@@ -15,11 +15,11 @@
  */
 package org.socialsignin.spring.data.dynamodb.repository.support;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMarshaller;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.socialsignin.spring.data.dynamodb.domain.sample.User;
+import software.amazon.awssdk.enhanced.dynamodb.AttributeConverter;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -29,16 +29,14 @@ public class DynamoDBEntityMetadataSupportUnitTest {
 	@Test
 	public void testGetMarshallerForProperty_WhenAnnotationIsOnField_AndReturnsDynamoDBMarshaller() {
 		DynamoDBEntityMetadataSupport<User, ?> support = new DynamoDBEntityMetadataSupport<>(User.class);
-		@SuppressWarnings("deprecation")
-		DynamoDBMarshaller<?> fieldAnnotation = support.getMarshallerForProperty("joinYear");
-		assertNotNull(fieldAnnotation);
+		AttributeConverter<?> converter = support.getTypeConverterForProperty("joinYear");
+		assertNotNull(converter);
 	}
 
 	@Test
 	public void testGetMarshallerForProperty_WhenAnnotationIsOnMethod_AndReturnsDynamoDBMarshaller() {
 		DynamoDBEntityMetadataSupport<User, ?> support = new DynamoDBEntityMetadataSupport<>(User.class);
-		@SuppressWarnings("deprecation")
-		DynamoDBMarshaller<?> methodAnnotation = support.getMarshallerForProperty("leaveDate");
-		assertNotNull(methodAnnotation);
+		AttributeConverter<?> converter = support.getTypeConverterForProperty("leaveDate");
+		assertNotNull(converter);
 	}
 }

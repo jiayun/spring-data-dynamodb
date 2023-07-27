@@ -15,36 +15,23 @@
  */
 package org.socialsignin.spring.data.dynamodb.utils;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
 import org.springframework.dao.DataAccessException;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
-import java.util.stream.Collectors;
 
 public interface ExceptionHandler {
 
-	default <T extends DataAccessException> T repackageToException(List<DynamoDBMapper.FailedBatch> failedBatches,
-			Class<T> targetType) {
-		// Error handling:
-		Queue<Exception> allExceptions = failedBatches.stream().map(it -> it.getException())
-				.collect(Collectors.toCollection(LinkedList::new));
+	default <T extends DataAccessException> T repackageToException(Class<T> targetType) {
 
-		// The first exception is hopefully the cause
-		Exception cause = allExceptions.poll();
 		try {
 			Constructor<T> ctor = targetType.getConstructor(String.class, Throwable.class);
-			T e = ctor.newInstance("Processing of entities failed!", cause);
-			// and all other exceptions are 'just' follow-up exceptions
-			allExceptions.stream().forEach(e::addSuppressed);
+			T e = ctor.newInstance("Processing of entities failed!", null);
 			return e;
 		} catch (NoSuchMethodException | InstantiationException | IllegalAccessException
 				| InvocationTargetException e) {
 			assert false; // we should never end up here
-			throw new RuntimeException("Could not repackage '" + failedBatches + "' to " + targetType, e);
+			throw new RuntimeException("Could not repackage to " + targetType, e);
 		}
 	}
 }

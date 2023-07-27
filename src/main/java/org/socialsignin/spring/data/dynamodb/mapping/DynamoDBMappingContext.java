@@ -15,13 +15,13 @@
  */
 package org.socialsignin.spring.data.dynamodb.mapping;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBHashKey;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBRangeKey;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTable;
 import org.springframework.data.mapping.context.AbstractMappingContext;
 import org.springframework.data.mapping.model.Property;
 import org.springframework.data.mapping.model.SimpleTypeHolder;
 import org.springframework.data.util.TypeInformation;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSortKey;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -79,24 +79,24 @@ public class DynamoDBMappingContext
 		boolean hasHashKey = false;
 		boolean hasRangeKey = false;
 		for (Method method : type.getType().getMethods()) {
-			if (method.isAnnotationPresent(DynamoDBHashKey.class)) {
+			if (method.isAnnotationPresent(DynamoDbPartitionKey.class)) {
 				hasHashKey = true;
 			}
-			if (method.isAnnotationPresent(DynamoDBRangeKey.class)) {
+			if (method.isAnnotationPresent(DynamoDbSortKey.class)) {
 				hasRangeKey = true;
 			}
 
 		}
 		for (Field field : type.getType().getFields()) {
-			if (field.isAnnotationPresent(DynamoDBHashKey.class)) {
+			if (field.isAnnotationPresent(DynamoDbPartitionKey.class)) {
 				hasHashKey = true;
 			}
-			if (field.isAnnotationPresent(DynamoDBRangeKey.class)) {
+			if (field.isAnnotationPresent(DynamoDbSortKey.class)) {
 				hasRangeKey = true;
 			}
 
 		}
-		return type.getType().isAnnotationPresent(DynamoDBTable.class) || (hasHashKey && hasRangeKey);
+		return type.getType().isAnnotationPresent(DynamoDbBean.class) || (hasHashKey && hasRangeKey);
 	}
 
 }

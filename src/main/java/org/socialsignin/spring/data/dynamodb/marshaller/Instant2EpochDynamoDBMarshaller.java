@@ -22,22 +22,21 @@ import software.amazon.awssdk.enhanced.dynamodb.EnhancedType;
 import software.amazon.awssdk.enhanced.dynamodb.internal.converter.StringConverter;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.util.Date;
+import java.time.Instant;
 
 @SuppressWarnings("deprecation")
-public abstract class DateDynamoDBMarshaller implements StringConverter<Date>, AttributeConverter<Date> {
-
-	public abstract DateFormat getDateFormat();
+public class Instant2EpochDynamoDBMarshaller
+		implements
+		StringConverter<Instant>,
+		AttributeConverter<Instant> {
 
 	@Override
-	public AttributeValue transformFrom(Date input) {
+	public AttributeValue transformFrom(Instant input) {
 		return AttributeValue.builder().s(toString(input)).build();
 	}
 
 	@Override
-	public Date transformTo(AttributeValue input) {
+	public Instant transformTo(AttributeValue input) {
 		return fromString(input.s());
 	}
 
@@ -47,30 +46,25 @@ public abstract class DateDynamoDBMarshaller implements StringConverter<Date>, A
 	}
 
 	@Override
-	public Date fromString(String string) {
+	public Instant fromString(String string) {
 		if (!StringUtils.hasText(string)) {
 			return null;
 		} else {
-			try {
-				return getDateFormat().parse(string);
-			} catch (ParseException e) {
-				throw new RuntimeException(e);
-			}
+			return Instant.ofEpochMilli(Long.parseLong(string));
 		}
 	}
 
 	@Override
-	public EnhancedType<Date> type() {
-		return EnhancedType.of(Date.class);
+	public EnhancedType<Instant> type() {
+		return EnhancedType.of(Instant.class);
 	}
 
 	@Override
-	public String toString(Date object) {
+	public String toString(Instant object) {
 		if (object == null) {
 			return null;
 		} else {
-			return getDateFormat().format(object);
+			return Long.toString(object.toEpochMilli());
 		}
 	}
-
 }

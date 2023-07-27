@@ -15,7 +15,7 @@
  */
 package org.socialsignin.spring.data.dynamodb.config;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTable;
+import jakarta.persistence.Table;
 import org.junit.jupiter.api.Test;
 import org.socialsignin.spring.data.dynamodb.mapping.DynamoDBMappingContext;
 import org.socialsignin.spring.data.dynamodb.mapping.event.BeforeSaveEvent;
@@ -24,6 +24,7 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 
 import java.util.Date;
 
@@ -64,7 +65,8 @@ public class AuditingIntegrationTests {
 		context.close();
 	}
 
-	@DynamoDBTable(tableName = "Entity")
+	@Table(name = "Entity")
+	@DynamoDbBean
 	class Entity {
 
 		@Id

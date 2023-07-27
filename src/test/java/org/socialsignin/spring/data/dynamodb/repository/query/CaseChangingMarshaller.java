@@ -15,19 +15,37 @@
  */
 package org.socialsignin.spring.data.dynamodb.repository.query;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMarshaller;
+import software.amazon.awssdk.enhanced.dynamodb.AttributeConverter;
+import software.amazon.awssdk.enhanced.dynamodb.AttributeValueType;
+import software.amazon.awssdk.enhanced.dynamodb.EnhancedType;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 @SuppressWarnings("deprecation")
-public class CaseChangingMarshaller implements DynamoDBMarshaller<String> {
+public class CaseChangingMarshaller implements AttributeConverter<String> {
 
-	@Override
-	public String marshall(String getterReturnResult) {
-		return getterReturnResult == null ? null : getterReturnResult.toLowerCase();
-	}
+    @Override
+    public AttributeValue transformFrom(String input) {
+        return AttributeValue.builder().s(input.toLowerCase()).build();
+    }
 
-	@Override
-	public String unmarshall(Class<String> clazz, String obj) {
-		return obj == null ? null : obj.toUpperCase();
-	}
+    @Override
+    public String transformTo(AttributeValue input) {
+        String object = input.s();
 
+        if (object == null) {
+            return null;
+        } else {
+            return object.toUpperCase();
+        }
+    }
+
+    @Override
+    public EnhancedType<String> type() {
+        return EnhancedType.of(String.class);
+    }
+
+    @Override
+    public AttributeValueType attributeValueType() {
+        return AttributeValueType.S;
+    }
 }

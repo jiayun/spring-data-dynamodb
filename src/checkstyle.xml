@@ -23,7 +23,7 @@
     <module name="TreeWalker">
         <module name="ModifierOrder" />
         <module name="EmptyBlock" />
-        <module name="AvoidStarImport" />
+<!--        <module name="AvoidStarImport" />-->
         <module name="UnusedImports" />
 
         <module name="RegexpSinglelineJava">

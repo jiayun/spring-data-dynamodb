@@ -15,12 +15,12 @@
  */
 package org.socialsignin.spring.data.dynamodb.repository.support;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBHashKey;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBRangeKey;
 import org.springframework.util.Assert;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.ReflectionUtils.FieldCallback;
 import org.springframework.util.ReflectionUtils.MethodCallback;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSortKey;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -52,7 +52,7 @@ public class DynamoDBHashAndRangeKeyMethodExtractorImpl<T> implements DynamoDBHa
 		ReflectionUtils.doWithMethods(idType, new MethodCallback() {
 			@Override
 			public void doWith(Method method) {
-				if (method.getAnnotation(DynamoDBHashKey.class) != null) {
+				if (method.getAnnotation(DynamoDbPartitionKey.class) != null) {
 					Assert.isNull(hashKeyMethod,
 							"Multiple methods annotated by @DynamoDBHashKey within type " + idType.getName() + "!");
 					ReflectionUtils.makeAccessible(method);
@@ -63,7 +63,7 @@ public class DynamoDBHashAndRangeKeyMethodExtractorImpl<T> implements DynamoDBHa
 		ReflectionUtils.doWithFields(idType, new FieldCallback() {
 			@Override
 			public void doWith(Field field) {
-				if (field.getAnnotation(DynamoDBHashKey.class) != null) {
+				if (field.getAnnotation(DynamoDbPartitionKey.class) != null) {
 					Assert.isNull(hashKeyField,
 							"Multiple fields annotated by @DynamoDBHashKey within type " + idType.getName() + "!");
 					ReflectionUtils.makeAccessible(field);
@@ -75,7 +75,7 @@ public class DynamoDBHashAndRangeKeyMethodExtractorImpl<T> implements DynamoDBHa
 		ReflectionUtils.doWithMethods(idType, new MethodCallback() {
 			@Override
 			public void doWith(Method method) {
-				if (method.getAnnotation(DynamoDBRangeKey.class) != null) {
+				if (method.getAnnotation(DynamoDbSortKey.class) != null) {
 					Assert.isNull(rangeKeyMethod,
 							"Multiple methods annotated by @DynamoDBRangeKey within type " + idType.getName() + "!");
 					ReflectionUtils.makeAccessible(method);
@@ -86,7 +86,7 @@ public class DynamoDBHashAndRangeKeyMethodExtractorImpl<T> implements DynamoDBHa
 		ReflectionUtils.doWithFields(idType, new FieldCallback() {
 			@Override
 			public void doWith(Field field) {
-				if (field.getAnnotation(DynamoDBRangeKey.class) != null) {
+				if (field.getAnnotation(DynamoDbSortKey.class) != null) {
 					Assert.isNull(rangeKeyField,
 							"Multiple fields annotated by @DynamoDBRangeKey within type " + idType.getName() + "!");
 					ReflectionUtils.makeAccessible(field);

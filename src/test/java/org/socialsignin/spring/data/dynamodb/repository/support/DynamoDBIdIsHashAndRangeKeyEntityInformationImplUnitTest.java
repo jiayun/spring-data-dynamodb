@@ -15,7 +15,6 @@
  */
 package org.socialsignin.spring.data.dynamodb.repository.support;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMarshaller;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -62,10 +61,6 @@ public class DynamoDBIdIsHashAndRangeKeyEntityInformationImplUnitTest {
 	@Mock
 	private PlaylistId mockPlaylistId;
 
-	@SuppressWarnings("deprecation")
-	@Mock
-	private DynamoDBMarshaller<Object> mockPropertyMarshaller;
-
 	@SuppressWarnings("unchecked")
 	@BeforeEach
 	public void setup() {
@@ -77,8 +72,6 @@ public class DynamoDBIdIsHashAndRangeKeyEntityInformationImplUnitTest {
 		lenient().when(mockPlaylistEntityMetadata.getHashKeyPropertyName()).thenReturn("playlistHashKeyPropertyName");
 		lenient().when(mockPlaylistEntityMetadata.getHashKeyPropotypeEntityForHashKey("somePlaylistHashKey"))
 				.thenReturn(mockPlaylistPrototype);
-		lenient().when(mockPlaylistEntityMetadata.getMarshallerForProperty("marshalledProperty"))
-				.thenReturn(mockPropertyMarshaller);
 		lenient().when(mockPlaylistEntityMetadata.getOverriddenAttributeName("overriddenProperty"))
 				.thenReturn(Optional.of("modifiedPropertyName"));
 
@@ -171,15 +164,6 @@ public class DynamoDBIdIsHashAndRangeKeyEntityInformationImplUnitTest {
 		Object hashKeyPrototype2 = dynamoDBPlaylistEntityInformation
 				.getHashKeyPropotypeEntityForHashKey("somePlaylistHashKey");
 		Assertions.assertEquals(mockPlaylistPrototype, hashKeyPrototype2);
-	}
-
-	@Test
-	public void testGetMarshallerForProperty_DelegatesToEntityMetadata_IrrespectiveOfEntityInformationSetup() {
-		@SuppressWarnings("deprecation")
-		DynamoDBMarshaller<?> marshaller1 = dynamoDBPlaylistEntityInformation
-				.getMarshallerForProperty("marshalledProperty");
-		Assertions.assertEquals(mockPropertyMarshaller, marshaller1);
-
 	}
 
 	@Test

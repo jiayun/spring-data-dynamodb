@@ -16,6 +16,7 @@
 package org.socialsignin.spring.data.dynamodb.query;
 
 import org.socialsignin.spring.data.dynamodb.core.DynamoDBOperations;
+import org.socialsignin.spring.data.dynamodb.repository.support.DynamoDBEntityInformation;
 
 /**
  * @author Michael Lavelle
@@ -25,17 +26,19 @@ public class SingleEntityLoadByHashAndRangeKeyQuery<T> extends AbstractSingleEnt
 
 	private Object hashKey;
 	private Object rangeKey;
+	private DynamoDBEntityInformation entityInformation;
 
 	public SingleEntityLoadByHashAndRangeKeyQuery(DynamoDBOperations dynamoDBOperations, Class<T> clazz, Object hashKey,
-			Object rangeKey) {
+			Object rangeKey, DynamoDBEntityInformation entityInformation) {
 		super(dynamoDBOperations, clazz);
 		this.hashKey = hashKey;
 		this.rangeKey = rangeKey;
+		this.entityInformation = entityInformation;
 	}
 
 	@Override
 	public T getSingleResult() {
-		return dynamoDBOperations.load(clazz, hashKey, rangeKey);
+		return (T) dynamoDBOperations.load(clazz, hashKey, rangeKey, entityInformation);
 	}
 
 }

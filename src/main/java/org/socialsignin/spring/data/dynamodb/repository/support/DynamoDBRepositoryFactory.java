@@ -15,7 +15,6 @@
  */
 package org.socialsignin.spring.data.dynamodb.repository.support;
 
-import com.amazonaws.util.VersionInfoUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.socialsignin.spring.data.dynamodb.core.DynamoDBOperations;
@@ -29,6 +28,7 @@ import org.springframework.data.repository.query.QueryLookupStrategy;
 import org.springframework.data.repository.query.QueryLookupStrategy.Key;
 import org.springframework.data.repository.query.QueryMethodEvaluationContextProvider;
 import org.springframework.data.util.Version;
+import software.amazon.awssdk.core.util.VersionInfo;
 
 import java.util.Optional;
 import java.util.StringTokenizer;
@@ -45,7 +45,7 @@ public class DynamoDBRepositoryFactory extends RepositoryFactorySupport {
 	static {
 		final String DEVELOPMENT = "DEVELOPMENT";
 
-		String awsSdkVersion = VersionInfoUtils.getVersion();
+		String awsSdkVersion = VersionInfo.SDK_VERSION;
 		String springDataVersion = Version.class.getPackage().getImplementationVersion();
 
 		String thisSpecVersion = DynamoDBRepositoryFactory.class.getPackage().getSpecificationVersion();

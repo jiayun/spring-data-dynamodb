@@ -31,12 +31,11 @@ package org.socialsignin.spring.data.dynamodb.mapping.event;
  * limitations under the License.
  */
 
-import com.amazonaws.services.dynamodbv2.datamodeling.PaginatedQueryList;
-import com.amazonaws.services.dynamodbv2.datamodeling.PaginatedScanList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationListener;
 import org.springframework.core.GenericTypeResolver;
+import software.amazon.awssdk.enhanced.dynamodb.model.PageIterable;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -83,11 +82,11 @@ public abstract class AbstractDynamoDBEventListener<E> implements ApplicationLis
 
 		if (event instanceof AfterScanEvent) {
 
-			publishEachElement((PaginatedScanList<?>) source, this::onAfterScan);
+			publishEachElement(((PageIterable<?>) source).stream().toList(), this::onAfterScan);
 			return;
 		} else if (event instanceof AfterQueryEvent) {
 
-			publishEachElement((PaginatedQueryList<?>) source, this::onAfterQuery);
+			publishEachElement(((PageIterable<?>) source).stream().toList(), this::onAfterQuery);
 			return;
 		}
 		// Check for matching domain type and invoke callbacks

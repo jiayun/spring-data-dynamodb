@@ -41,12 +41,12 @@ public class CountByHashKeyQueryTest {
 	@BeforeEach
 	public void setUp() {
 		hashKey = ThreadLocalRandom.current().nextLong();
-		underTest = new CountByHashKeyQuery<>(dynamoDBOperations, DOMAIN_CLASS, hashKey);
+		underTest = new CountByHashKeyQuery<>(dynamoDBOperations, DOMAIN_CLASS, hashKey, null);
 	}
 
 	@Test
 	public void testGetSingleResultExists() {
-		when(dynamoDBOperations.load(DOMAIN_CLASS, hashKey)).thenReturn(sampleEntity);
+		when(dynamoDBOperations.load(DOMAIN_CLASS, hashKey, null)).thenReturn(sampleEntity);
 		Long actual = underTest.getSingleResult();
 
 		assertEquals(Long.valueOf(1), actual);
@@ -54,7 +54,7 @@ public class CountByHashKeyQueryTest {
 
 	@Test
 	public void testGetSingleResultDoesntExist() {
-		when(dynamoDBOperations.load(DOMAIN_CLASS, hashKey)).thenReturn(null);
+		when(dynamoDBOperations.load(DOMAIN_CLASS, hashKey, null)).thenReturn(null);
 		Long actual = underTest.getSingleResult();
 
 		assertEquals(Long.valueOf(0), actual);

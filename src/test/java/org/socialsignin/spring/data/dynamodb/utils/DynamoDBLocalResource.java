@@ -15,18 +15,18 @@
  */
 package org.socialsignin.spring.data.dynamodb.utils;
 
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.TestExecutionListener;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 @Configuration
 public class DynamoDBLocalResource implements TestExecutionListener {
 
 	@Bean
-	public AmazonDynamoDB amazonDynamoDB() {
-		return DynamoDBEmbedded.create().amazonDynamoDB();
+	public DynamoDbClient amazonDynamoDB() {
+		return DynamoDBEmbedded.create().dynamoDbClient();
 	}
 
 }

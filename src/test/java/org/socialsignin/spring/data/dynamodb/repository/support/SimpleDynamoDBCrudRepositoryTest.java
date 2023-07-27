@@ -15,9 +15,6 @@
  */
 package org.socialsignin.spring.data.dynamodb.repository.support;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper.FailedBatch;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBScanExpression;
-import com.amazonaws.services.dynamodbv2.datamodeling.PaginatedScanList;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,11 +28,13 @@ import org.socialsignin.spring.data.dynamodb.domain.sample.PlaylistId;
 import org.socialsignin.spring.data.dynamodb.domain.sample.User;
 import org.socialsignin.spring.data.dynamodb.exception.BatchWriteException;
 import org.springframework.dao.EmptyResultDataAccessException;
+import software.amazon.awssdk.enhanced.dynamodb.model.BatchWriteResult;
+import software.amazon.awssdk.enhanced.dynamodb.model.PageIterable;
+import software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest;
+import software.amazon.awssdk.services.dynamodb.model.QueryRequest;
+import software.amazon.awssdk.services.dynamodb.model.WriteRequest;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -54,7 +53,9 @@ import static org.mockito.Mockito.*;
 public class SimpleDynamoDBCrudRepositoryTest {
 
 	@Mock
-	private PaginatedScanList<User> findAllResultMock;
+	private PageIterable<User> findAllResultMock;
+	@Mock
+	private Iterable<User> deleteAllMock;
 	@Mock
 	private DynamoDBOperations dynamoDBOperations;
 	@Mock
@@ -99,8 +100,8 @@ public class SimpleDynamoDBCrudRepositoryTest {
 		repoForEntityWithHashAndRangeKey = new SimpleDynamoDBCrudRepository<>(entityWithCompositeIdInformation,
 				dynamoDBOperations, mockEnableScanPermissions);
 
-		lenient().when(dynamoDBOperations.load(User.class, 1l)).thenReturn(testUser);
-		lenient().when(dynamoDBOperations.load(Playlist.class, "michael", "playlist1")).thenReturn(testPlaylist);
+		lenient().when(dynamoDBOperations.load(User.class, 1l, null)).thenReturn(testUser);
+		lenient().when(dynamoDBOperations.load(Playlist.class, "michael", "playlist1", null)).thenReturn(testPlaylist);
 
 	}
 
@@ -111,12 +112,12 @@ public class SimpleDynamoDBCrudRepositoryTest {
 		testResult.setId(Long.toString(id));
 
 		when(entityWithSimpleIdInformation.getHashKey(id)).thenReturn(id);
-		when(dynamoDBOperations.load(User.class, id)).thenReturn(testResult);
+		when(dynamoDBOperations.load(User.class, id, null)).thenReturn(testResult);
 
 		repoForEntityWithOnlyHashKey.deleteById(id);
 
 		ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-		Mockito.verify(dynamoDBOperations).delete(captor.capture());
+		Mockito.verify(dynamoDBOperations).delete(captor.capture(), null);
 		assertEquals(Long.toString(id), captor.getValue().getId());
 	}
 
@@ -124,29 +125,29 @@ public class SimpleDynamoDBCrudRepositoryTest {
 	public void deleteEntity() {
 		repoForEntityWithOnlyHashKey.delete(testUser);
 
-		verify(dynamoDBOperations).delete(testUser);
+		verify(dynamoDBOperations).delete(testUser, null);
 	}
 
 	@Test
 	public void deleteIterable() {
-		repoForEntityWithOnlyHashKey.deleteAll(findAllResultMock);
+		repoForEntityWithOnlyHashKey.deleteAll(deleteAllMock);
 
-		verify(dynamoDBOperations).batchDelete(findAllResultMock);
+		verify(dynamoDBOperations).batchDelete(deleteAllMock, null);
 	}
 
 	@Test
 	public void deleteAll() {
-		when(dynamoDBOperations.scan(eq(User.class), any(DynamoDBScanExpression.class))).thenReturn(findAllResultMock);
+		when(dynamoDBOperations.scan(eq(User.class), any(ScanEnhancedRequest.class), null)).thenReturn(findAllResultMock);
 
 		repoForEntityWithOnlyHashKey.deleteAll();
-		verify(dynamoDBOperations).batchDelete(findAllResultMock);
+		verify(dynamoDBOperations).batchDelete(findAllResultMock, null);
 	}
 
 	@Test
 	public void testFindAll() {
-		when(dynamoDBOperations.scan(eq(User.class), any(DynamoDBScanExpression.class))).thenReturn(findAllResultMock);
+		when(dynamoDBOperations.scan(eq(User.class), any(ScanEnhancedRequest.class), null)).thenReturn(findAllResultMock);
 
-		List<User> actual = repoForEntityWithOnlyHashKey.findAll();
+		Iterable<User> actual = repoForEntityWithOnlyHashKey.findAll();
 
 		assertSame(actual, findAllResultMock);
 	}
@@ -172,13 +173,13 @@ public class SimpleDynamoDBCrudRepositoryTest {
 		repoForEntityWithOnlyHashKey.delete(entity);
 
 		ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-		Mockito.verify(dynamoDBOperations).delete(captor.capture());
+		Mockito.verify(dynamoDBOperations).delete(captor.capture(), null);
 		assertEquals(Long.toString(id), captor.getValue().getId());
 	}
 
 	@Test
 	public void existsEntityWithOnlyHashKey() {
-		when(dynamoDBOperations.load(User.class, 1l)).thenReturn(null);
+		when(dynamoDBOperations.load(User.class, 1l, null)).thenReturn(null);
 
 		boolean actual = repoForEntityWithOnlyHashKey.existsById(1l);
 
@@ -189,13 +190,13 @@ public class SimpleDynamoDBCrudRepositoryTest {
 	public void testCount() {
 		repoForEntityWithOnlyHashKey.count();
 
-		verify(dynamoDBOperations).count(eq(User.class), any(DynamoDBScanExpression.class));
+		verify(dynamoDBOperations).count(eq(User.class), any(QueryRequest.Builder.class));
 	}
 
 	@Test
 	public void findOneEntityWithOnlyHashKey() {
 		Optional<User> user = repoForEntityWithOnlyHashKey.findById(1l);
-		Mockito.verify(dynamoDBOperations).load(User.class, 1l);
+		Mockito.verify(dynamoDBOperations).load(User.class, 1l, null);
 		assertEquals(testUser, user.get());
 	}
 
@@ -213,7 +214,7 @@ public class SimpleDynamoDBCrudRepositoryTest {
 
 		repoForEntityWithOnlyHashKey.save(entity);
 
-		verify(dynamoDBOperations).save(entity);
+		verify(dynamoDBOperations).save(entity, null);
 	}
 
 	@Test
@@ -222,27 +223,23 @@ public class SimpleDynamoDBCrudRepositoryTest {
 		List<User> entities = new ArrayList<>();
 		entities.add(new User());
 		entities.add(new User());
-		when(dynamoDBOperations.batchSave(anyIterable())).thenReturn(Collections.emptyList());
+		when(dynamoDBOperations.batchSave(anyIterable(), null)).thenReturn(BatchWriteResult.builder().build());
 
 		repoForEntityWithOnlyHashKey.saveAll(entities);
 
-		verify(dynamoDBOperations).batchSave(anyIterable());
+		verify(dynamoDBOperations).batchSave(entities, null);
 	}
 
 	@Test
 	public void testBatchSaveFailure() {
-		List<FailedBatch> failures = new ArrayList<>();
-		FailedBatch e1 = new FailedBatch();
-		e1.setException(new Exception("First exception"));
-		failures.add(e1);
-		FailedBatch e2 = new FailedBatch();
-		e2.setException(new Exception("Followup exception"));
-		failures.add(e2);
+		Map<String, List<WriteRequest>> map = new HashMap<>();
+		map.put("user", Collections.singletonList(WriteRequest.builder().build()));
 
 		List<User> entities = new ArrayList<>();
 		entities.add(new User());
 		entities.add(new User());
-		when(dynamoDBOperations.batchSave(anyIterable())).thenReturn(failures);
+		when(dynamoDBOperations.batchSave(anyIterable(), null))
+				.thenReturn(BatchWriteResult.builder().unprocessedRequests(map).build());
 
 		assertThrows(BatchWriteException.class, () -> {
 			repoForEntityWithOnlyHashKey.saveAll(entities);

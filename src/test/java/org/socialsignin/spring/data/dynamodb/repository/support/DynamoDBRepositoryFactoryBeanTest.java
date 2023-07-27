@@ -15,9 +15,6 @@
  */
 package org.socialsignin.spring.data.dynamodb.repository.support;
 
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapperConfig;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,6 +27,7 @@ import org.socialsignin.spring.data.dynamodb.repository.util.DynamoDBMappingCont
 import org.socialsignin.spring.data.dynamodb.repository.util.Entity2DynamoDBTableSynchronizer;
 import org.springframework.context.ApplicationContext;
 import org.springframework.data.repository.Repository;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -44,9 +42,7 @@ public class DynamoDBRepositoryFactoryBeanTest {
 	@Mock
 	private DynamoDBOperations dynamoDBOperations;
 	@Mock
-	private DynamoDBMapperConfig dynamoDBMapperConfig;
-	@Mock
-	private AmazonDynamoDB amazonDynamoDB;
+	private DynamoDbClient amazonDynamoDB;
 	@Mock
 	private Entity2DynamoDBTableSynchronizer<User, String> tableSynchronizer;
 	@Mock

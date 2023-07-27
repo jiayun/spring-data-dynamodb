@@ -15,24 +15,21 @@
  */
 package org.socialsignin.spring.data.dynamodb.repository.query;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapperTableModel;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBScanExpression;
-import com.amazonaws.services.dynamodbv2.model.ComparisonOperator;
-import com.amazonaws.services.dynamodbv2.model.Condition;
-import com.amazonaws.services.dynamodbv2.model.QueryRequest;
-import com.amazonaws.services.dynamodbv2.model.Select;
 import org.socialsignin.spring.data.dynamodb.core.DynamoDBOperations;
 import org.socialsignin.spring.data.dynamodb.query.CountByHashKeyQuery;
 import org.socialsignin.spring.data.dynamodb.query.MultipleEntityQueryRequestQuery;
-import org.socialsignin.spring.data.dynamodb.query.MultipleEntityScanExpressionQuery;
 import org.socialsignin.spring.data.dynamodb.query.Query;
 import org.socialsignin.spring.data.dynamodb.query.QueryRequestCountQuery;
-import org.socialsignin.spring.data.dynamodb.query.ScanExpressionCountQuery;
 import org.socialsignin.spring.data.dynamodb.query.SingleEntityLoadByHashKeyQuery;
 import org.socialsignin.spring.data.dynamodb.repository.support.DynamoDBEntityInformation;
+import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
+import software.amazon.awssdk.enhanced.dynamodb.model.QueryEnhancedRequest;
+import software.amazon.awssdk.services.dynamodb.model.ComparisonOperator;
+import software.amazon.awssdk.services.dynamodb.model.Condition;
+import software.amazon.awssdk.services.dynamodb.model.QueryRequest;
+import software.amazon.awssdk.services.dynamodb.model.Select;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author Michael Lavelle
@@ -43,30 +40,30 @@ public class DynamoDBEntityWithHashKeyOnlyCriteria<T, ID> extends AbstractDynamo
 	private final DynamoDBEntityInformation<T, ID> entityInformation;
 
 	public DynamoDBEntityWithHashKeyOnlyCriteria(DynamoDBEntityInformation<T, ID> entityInformation,
-			DynamoDBMapperTableModel<T> tableModel) {
+			TableSchema<T> tableModel) {
 		super(entityInformation, tableModel);
 		this.entityInformation = entityInformation;
 	}
 
 	protected Query<T> buildSingleEntityLoadQuery(DynamoDBOperations dynamoDBOperations) {
-		return new SingleEntityLoadByHashKeyQuery<>(dynamoDBOperations, clazz, getHashKeyPropertyValue());
+		return new SingleEntityLoadByHashKeyQuery<>(dynamoDBOperations, clazz, getHashKeyPropertyValue(), entityInformation);
 	}
 
 	protected Query<Long> buildSingleEntityCountQuery(DynamoDBOperations dynamoDBOperations) {
-		return new CountByHashKeyQuery<>(dynamoDBOperations, clazz, getHashKeyPropertyValue());
+		return new CountByHashKeyQuery<>(dynamoDBOperations, clazz, getHashKeyPropertyValue(), entityInformation);
 	}
 
 	protected Query<T> buildFinderQuery(DynamoDBOperations dynamoDBOperations) {
 		if (isApplicableForGlobalSecondaryIndex()) {
 
 			List<Condition> hashKeyConditions = getHashKeyConditions();
-			QueryRequest queryRequest = buildQueryRequest(
-					dynamoDBOperations.getOverriddenTableName(clazz, entityInformation.getDynamoDBTableName()),
-					getGlobalSecondaryIndexName(), getHashKeyAttributeName(), null, null, hashKeyConditions, null);
+			QueryEnhancedRequest queryRequest = buildQueryEnhancedRequest(
+				getHashKeyAttributeName(), null, null, hashKeyConditions, null);
 			return new MultipleEntityQueryRequestQuery<>(dynamoDBOperations, entityInformation.getJavaType(),
-					queryRequest);
+					queryRequest, entityInformation);
 		} else {
-			return new MultipleEntityScanExpressionQuery<>(dynamoDBOperations, clazz, buildScanExpression());
+			throw new UnsupportedOperationException(
+					"Query by example is not supported for entities with no range key and no global secondary index");
 		}
 	}
 
@@ -74,14 +71,15 @@ public class DynamoDBEntityWithHashKeyOnlyCriteria<T, ID> extends AbstractDynamo
 		if (isApplicableForGlobalSecondaryIndex()) {
 
 			List<Condition> hashKeyConditions = getHashKeyConditions();
-			QueryRequest queryRequest = buildQueryRequest(
-					dynamoDBOperations.getOverriddenTableName(clazz, entityInformation.getDynamoDBTableName()),
+			QueryRequest.Builder queryRequest = buildQueryRequest(
+					entityInformation.getDynamoDBTableName(),
 					getGlobalSecondaryIndexName(), getHashKeyAttributeName(), null, null, hashKeyConditions, null);
-			queryRequest.setSelect(Select.COUNT);
+			queryRequest.select(Select.COUNT);
 			return new QueryRequestCountQuery(dynamoDBOperations, queryRequest);
 
 		} else {
-			return new ScanExpressionCountQuery<>(dynamoDBOperations, clazz, buildScanExpression(), pageQuery);
+			throw new UnsupportedOperationException(
+					"Query by example is not supported for entities with no range key and no global secondary index");
 		}
 	}
 
@@ -93,31 +91,6 @@ public class DynamoDBEntityWithHashKeyOnlyCriteria<T, ID> extends AbstractDynamo
 	@Override
 	public boolean isApplicableForLoad() {
 		return isOnlyHashKeySpecified();
-	}
-
-	public DynamoDBScanExpression buildScanExpression() {
-
-		ensureNoSort(sort);
-
-		DynamoDBScanExpression scanExpression = new DynamoDBScanExpression();
-		if (isHashKeySpecified()) {
-			scanExpression.addFilterCondition(getHashKeyAttributeName(),
-					createSingleValueCondition(getHashKeyPropertyName(), ComparisonOperator.EQ,
-							getHashKeyAttributeValue(), getHashKeyAttributeValue().getClass(), true));
-		}
-
-		for (Map.Entry<String, List<Condition>> conditionEntry : attributeConditions.entrySet()) {
-			for (Condition condition : conditionEntry.getValue()) {
-				scanExpression.addFilterCondition(conditionEntry.getKey(), condition);
-			}
-		}
-
-		if (projection.isPresent()) {
-			scanExpression.setSelect(Select.SPECIFIC_ATTRIBUTES);
-			scanExpression.setProjectionExpression(projection.get());
-		}
-		limit.ifPresent(scanExpression::setLimit);
-		return scanExpression;
 	}
 
 	@Override

@@ -15,19 +15,19 @@
  */
 package org.socialsignin.spring.data.dynamodb.marshaller;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMarshaller;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTypeConverter;
 import org.springframework.util.StringUtils;
+import software.amazon.awssdk.enhanced.dynamodb.AttributeConverter;
+import software.amazon.awssdk.enhanced.dynamodb.AttributeValueType;
+import software.amazon.awssdk.enhanced.dynamodb.EnhancedType;
+import software.amazon.awssdk.enhanced.dynamodb.internal.converter.StringConverter;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 
 @SuppressWarnings("deprecation")
-public class Instant2IsoDynamoDBMarshaller
-		implements
-			DynamoDBTypeConverter<String, Instant>,
-			DynamoDBMarshaller<Instant> {
+public class Instant2IsoDynamoDBMarshaller implements StringConverter<Instant>, AttributeConverter<Instant> {
 
 	private static final String PATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
 
@@ -36,30 +36,40 @@ public class Instant2IsoDynamoDBMarshaller
 	}
 
 	@Override
-	public String convert(Instant object) {
-		return marshall(object);
+	public AttributeValue transformFrom(Instant input) {
+		return AttributeValue.builder().s(toString(input)).build();
 	}
 
 	@Override
-	public String marshall(Instant getterReturnResult) {
-		if (getterReturnResult == null) {
+	public Instant transformTo(AttributeValue input) {
+		return fromString(input.s());
+	}
+
+	@Override
+	public AttributeValueType attributeValueType() {
+		return AttributeValueType.S;
+	}
+
+	@Override
+	public Instant fromString(String string) {
+		if (!StringUtils.hasText(string)) {
 			return null;
 		} else {
-			return getDateFormat().format(getterReturnResult);
+			return Instant.from(getDateFormat().parse(string));
 		}
 	}
 
 	@Override
-	public Instant unconvert(String object) {
-		return unmarshall(Instant.class, object);
+	public EnhancedType<Instant> type() {
+		return EnhancedType.of(Instant.class);
 	}
 
 	@Override
-	public Instant unmarshall(Class<Instant> clazz, String obj) {
-		if (!StringUtils.hasText(obj)) {
+	public String toString(Instant object) {
+		if (object == null) {
 			return null;
 		} else {
-			return Instant.from(getDateFormat().parse(obj));
+			return getDateFormat().format(object);
 		}
 	}
 

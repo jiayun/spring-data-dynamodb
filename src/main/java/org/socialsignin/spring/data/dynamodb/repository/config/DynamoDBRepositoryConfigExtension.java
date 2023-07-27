@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.socialsignin.spring.data.dynamodb.core.DynamoDBTemplate;
@@ -46,6 +45,7 @@ import org.springframework.data.repository.config.XmlRepositoryConfigurationSour
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 import org.w3c.dom.Element;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 
 /**
  * @author Michael Lavelle
@@ -83,7 +83,7 @@ public class DynamoDBRepositoryConfigExtension extends RepositoryConfigurationEx
 
 	@Override
 	protected Collection<Class<? extends Annotation>> getIdentifyingAnnotations() {
-		return Collections.singleton(DynamoDBTable.class);
+		return Collections.singleton(DynamoDbBean.class);
 	}
 
 	@Override
@@ -267,13 +267,6 @@ public class DynamoDBRepositoryConfigExtension extends RepositoryConfigurationEx
 
 		this.dynamoDBMapperConfigName = getBeanNameWithModulePrefix("DynamoDBMapperConfig");
 		Optional<String> dynamoDBMapperConfigRef = configurationSource.getAttribute("dynamoDBMapperConfigRef");
-
-		if (!dynamoDBMapperConfigRef.isPresent()) {
-			BeanDefinitionBuilder dynamoDBMapperConfigBuiilder = BeanDefinitionBuilder
-					.genericBeanDefinition(DynamoDBMapperConfigFactory.class);
-			registry.registerBeanDefinition(this.dynamoDBMapperConfigName,
-					dynamoDBMapperConfigBuiilder.getBeanDefinition());
-		}
 
 		Optional<String> dynamoDBMapperRef = configurationSource.getAttribute("dynamoDBMapperRef");
 		if(!dynamoDBMapperRef.isPresent()) {

@@ -15,10 +15,7 @@
  */
 package org.socialsignin.spring.data.dynamodb.mapping;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBHashKey;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBIgnore;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBRangeKey;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTable;
+import jakarta.persistence.Table;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -26,6 +23,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.socialsignin.spring.data.dynamodb.repository.DynamoDBHashAndRangeKey;
 import org.springframework.data.annotation.Id;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbIgnore;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSortKey;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -40,28 +41,38 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  */
 @ExtendWith(MockitoExtension.class)
 public class DynamoDBMappingContextTest {
-	@DynamoDBTable(tableName = "a")
+	@DynamoDbBean
+	@Table(name = "a")
 	static class DynamoDBMappingContextTestFieldEntity {
 
-		@DynamoDBHashKey
 		private String hashKey;
 
-		@DynamoDBRangeKey
 		private String rangeKey;
 
 		@SuppressWarnings("unused")
 		private String someProperty;
+
+		@DynamoDbPartitionKey
+		public String getHashKey() {
+			return hashKey;
+		}
+
+		@DynamoDbSortKey
+		public String getRangeKey() {
+			return rangeKey;
+		}
 	}
 
-	@DynamoDBTable(tableName = "b")
+	@DynamoDbBean
+	@Table(name = "b")
 	static class DynamoDBMappingContextTestMethodEntity {
 
-		@DynamoDBHashKey
+		@DynamoDbPartitionKey
 		public String getHashKey() {
 			return null;
 		}
 
-		@DynamoDBRangeKey
+		@DynamoDbSortKey
 		public String getRangeKey() {
 			return null;
 		}
@@ -71,12 +82,13 @@ public class DynamoDBMappingContextTest {
 		}
 	}
 
-	@DynamoDBTable(tableName = "c")
+	@DynamoDbBean
+	@Table(name = "c")
 	static class DynamoDBMappingContextTestIdEntity {
 		@Id
 		private DynamoDBHashAndRangeKey hashRangeKey;
 
-		@DynamoDBIgnore
+		@DynamoDbIgnore
 		public String getSomething() {
 			return null;
 		}
@@ -90,7 +102,7 @@ public class DynamoDBMappingContextTest {
 	}
 
 	@Test
-	public void detectsPropertyAnnotation() {
+	public void detectPropertyAnnotation() {
 
 		DynamoDBPersistentEntityImpl<?> entity = underTest
 				.getPersistentEntity(DynamoDBMappingContextTestFieldEntity.class);
@@ -101,7 +113,7 @@ public class DynamoDBMappingContextTest {
 
 	@Test
 	@Disabled
-	public void detectdMethodsAnnotation() {
+	public void detectMethodsAnnotation() {
 		DynamoDBPersistentEntityImpl<?> entity = underTest
 				.getPersistentEntity(DynamoDBMappingContextTestMethodEntity.class);
 
@@ -111,7 +123,7 @@ public class DynamoDBMappingContextTest {
 	}
 
 	@Test
-	public void detectdMethodsId() {
+	public void detectMethodsId() {
 		DynamoDBPersistentEntityImpl<?> entity = underTest
 				.getPersistentEntity(DynamoDBMappingContextTestIdEntity.class);
 

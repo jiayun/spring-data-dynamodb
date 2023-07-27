@@ -15,17 +15,17 @@
  */
 package org.socialsignin.spring.data.dynamodb.core;
 
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 @Configuration
 public class ConfigurationTI {
 
 	@Bean
-	public AmazonDynamoDB amazonDynamoDB() {
-		AmazonDynamoDB ddb = DynamoDBEmbedded.create().amazonDynamoDB();
+	public DynamoDbClient amazonDynamoDB() {
+		DynamoDbClient ddb = DynamoDBEmbedded.create().dynamoDbClient();
 		return ddb;
 	}
 }

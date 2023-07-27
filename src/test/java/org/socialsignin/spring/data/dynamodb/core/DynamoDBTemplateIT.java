@@ -15,19 +15,23 @@
  */
 package org.socialsignin.spring.data.dynamodb.core;
 
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.socialsignin.spring.data.dynamodb.domain.sample.User;
 import org.socialsignin.spring.data.dynamodb.repository.config.EnableDynamoDBRepositories;
+import org.socialsignin.spring.data.dynamodb.repository.support.DynamoDBEntityInformation;
 import org.socialsignin.spring.data.dynamodb.utils.DynamoDBLocalResource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 
 import java.util.UUID;
+
+import static org.mockito.Mockito.when;
 
 /**
  * Integration test that interacts with DynamoDB Local instance.
@@ -38,9 +42,10 @@ import java.util.UUID;
 public class DynamoDBTemplateIT {
 
 	@Autowired
-	private AmazonDynamoDB amazonDynamoDB;
-	@Autowired
 	private DynamoDBTemplate dynamoDBTemplate;
+
+	@Mock
+	private DynamoDBEntityInformation<User, String> userEntityInformation;
 
 	@Configuration
 	@EnableDynamoDBRepositories(basePackages = "org.socialsignin.spring.data.dynamodb.domain.sample")
@@ -49,6 +54,8 @@ public class DynamoDBTemplateIT {
 
 	@Test
 	public void testUser_CRUD() {
+		DynamoDbTable<User> table = dynamoDBTemplate.getDynamoDbTable(User.class, "user");
+		when(userEntityInformation.getTable()).thenReturn(table);
 
 		// Given a entity to save.
 		User user = new User();
@@ -57,10 +64,10 @@ public class DynamoDBTemplateIT {
 		user.setId(UUID.randomUUID().toString());
 
 		// Save it to DB.
-		dynamoDBTemplate.save(user);
+		dynamoDBTemplate.save(user, userEntityInformation);
 
 		// Retrieve it from DB.
-		User retrievedUser = dynamoDBTemplate.load(User.class, user.getId());
+		User retrievedUser = dynamoDBTemplate.load(User.class, user.getId(), userEntityInformation);
 
 		// Verify the details on the entity.
 		assert retrievedUser.getName().equals(user.getName());
@@ -69,17 +76,17 @@ public class DynamoDBTemplateIT {
 
 		// Update the entity and save.
 		retrievedUser.setNumberOfPlaylists(20);
-		dynamoDBTemplate.save(retrievedUser);
+		dynamoDBTemplate.save(retrievedUser, userEntityInformation);
 
-		retrievedUser = dynamoDBTemplate.load(User.class, user.getId());
+		retrievedUser = dynamoDBTemplate.load(User.class, user.getId(), userEntityInformation);
 
 		assert retrievedUser.getNumberOfPlaylists() == 20;
 
 		// Delete.
-		dynamoDBTemplate.delete(retrievedUser);
+		dynamoDBTemplate.delete(retrievedUser, userEntityInformation);
 
 		// Get again.
-		assert dynamoDBTemplate.load(User.class, user.getId()) == null;
+		assert dynamoDBTemplate.load(User.class, user.getId(), userEntityInformation) == null;
 	}
 
 }
